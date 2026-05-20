@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Global Political Compass — 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070b12;--s1:#0d1420;--s2:#121b2b;--s3:#1a2438;
+  --bd:#1e2d45;--bd2:#253547;--tx:#d4e0f0;--muted:#5a7a9a;
+  --accent:#06c8d8;--accent2:#f0b429;--red:#f05060;--green:#30d080;
+  --blue:#4090f0;--font:'Syne',sans-serif;--mono:'DM Mono',monospace;
+  --axis-pol:#f05060;--axis-soc:#30d080;--axis-econ:#4090f0;
+  --hdr-h:44px;--sb-w:268px;
+}
+
+/* ── Reset ───────────────────────────────────────────────────────────────── */
+html,body{
+  height:100%;width:100%;
+  background:var(--bg);color:var(--tx);
+  font-family:var(--font);
+  overflow:hidden;   /* desktop: no scroll */
+}
+@media(max-width:768px){
+  html,body{overflow-x:hidden;overflow-y:auto}
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+#hdr{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;gap:10px;
+  padding:0 12px;height:var(--hdr-h);
+  background:var(--s1);border-bottom:1px solid var(--bd);
+  flex-shrink:0;width:100%;
+}
+#hdr h1{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+#hdr .dot{width:4px;height:4px;border-radius:50%;background:var(--bd2);flex-shrink:0}
+#stat{font-size:9px;color:var(--muted);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0}
+
+/* Spin controls (always visible) */
+#spin-ctrl{display:flex;gap:4px;flex-shrink:0}
+.spin-btn{
+  display:flex;align-items:center;justify-content:center;
+  padding:3px 8px;border-radius:4px;font-size:9px;font-family:var(--mono);
+  cursor:pointer;border:1px solid var(--bd);background:none;color:var(--muted);
+  transition:all .15s;white-space:nowrap;
+}
+.spin-btn:hover{border-color:var(--accent);color:var(--accent)}
+.spin-btn.on{background:rgba(6,200,216,.12);border-color:var(--accent);color:var(--accent)}
+
+/* Hamburger (mobile only) */
+#hbg{
+  display:none;flex-shrink:0;
+  background:none;border:1px solid var(--bd);border-radius:5px;
+  padding:5px 7px;cursor:pointer;color:var(--muted);
+  font-size:14px;line-height:1;transition:all .15s;
+}
+#hbg:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Axis legend */
+#axis-legend{display:flex;gap:8px;margin-left:auto;flex-shrink:0}
+.axl{font-size:8px;font-family:var(--mono);font-weight:600;letter-spacing:.06em;padding:2px 6px;border-radius:3px;white-space:nowrap}
+.axl.pol{background:rgba(240,80,96,.12);color:var(--axis-pol);border:1px solid rgba(240,80,96,.3)}
+.axl.soc{background:rgba(48,208,128,.12);color:var(--axis-soc);border:1px solid rgba(48,208,128,.3)}
+.axl.econ{background:rgba(64,144,240,.12);color:var(--axis-econ);border:1px solid rgba(64,144,240,.3)}
+
+/* ── Main layout (desktop) ───────────────────────────────────────────────── */
+#main{
+  display:flex;flex-direction:row;
+  height:calc(100vh - var(--hdr-h));
+  overflow:hidden;
+  position:relative;
+}
+
+/* ── 3-D canvas wrap ─────────────────────────────────────────────────────── */
+#cmp-wrap{
+  flex:1;position:relative;overflow:hidden;
+  cursor:grab;transition:filter .3s;
+}
+#cmp-wrap.dragging{cursor:grabbing}
+#cmp-wrap.blurred{filter:blur(4px) brightness(.7);pointer-events:none}
+#c3d{display:block;width:100%;height:100%}
+
+/* Axis labels */
+.ax-label{position:absolute;pointer-events:none;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.07em;white-space:nowrap;padding:2px 5px;border-radius:2px;transform:translate(-50%,-50%);transition:opacity .15s}
+.ax-label.pol{color:var(--axis-pol);text-shadow:0 0 8px rgba(240,80,96,.8)}
+.ax-label.soc{color:var(--axis-soc);text-shadow:0 0 8px rgba(48,208,128,.8)}
+.ax-label.econ{color:var(--axis-econ);text-shadow:0 0 8px rgba(64,144,240,.8)}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+#sb{
+  width:var(--sb-w);min-width:var(--sb-w);
+  display:flex;flex-direction:column;
+  gap:7px;padding:8px;
+  background:var(--bg);
+  overflow-y:auto;overflow-x:hidden;
+  flex-shrink:0;
+}
+#sb::-webkit-scrollbar{width:3px}
+#sb::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+
+/* Sidebar subpanels */
+#fp{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:9px;flex-shrink:0}
+.flabel{display:block;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+select{width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:4px;color:var(--tx);padding:4px 7px;font-size:10px;font-family:var(--font);cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a7a9a' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:calc(100% - 7px) center;background-size:9px;padding-right:22px}
+select:focus{outline:none;border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:3px}
+.chip{padding:2px 7px;border-radius:8px;font-size:9px;font-family:var(--mono);cursor:pointer;border:1px solid var(--bd);background:transparent;color:var(--muted);transition:all .15s;white-space:nowrap}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip.on{background:rgba(6,200,216,.12);border-color:var(--accent);color:var(--accent)}
+.chip.auth.on{background:rgba(240,80,96,.12);border-color:var(--red);color:var(--red)}
+.chip.lib.on{background:rgba(48,208,128,.12);border-color:var(--green);color:var(--green)}
+
+/* 2D Compass panel */
+#c2d-wrap{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:8px;flex-shrink:0}
+#c2d-hdr{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+#c2d-title{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);flex:1}
+.proj-btn{padding:2px 6px;border-radius:3px;font-size:8px;font-family:var(--mono);cursor:pointer;border:1px solid var(--bd);background:transparent;color:var(--muted);transition:all .12s;letter-spacing:.04em}
+.proj-btn:hover,.proj-btn.on{background:rgba(6,200,216,.12);border-color:var(--accent);color:var(--accent)}
+#c2d{display:block;width:100%;border-radius:4px;image-rendering:pixelated}
+
+/* Legend / party list */
+#lp{
+  background:var(--s1);border:1px solid var(--bd);border-radius:8px;
+  display:flex;flex-direction:column;
+  flex:0 0 auto;          /* don't auto-stretch; fixed height below */
+  height:260px;           /* desktop: fixed height so it's scrollable */
+  overflow:hidden;
+}
+#lh{padding:7px 9px;border-bottom:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;gap:5px;flex-shrink:0}
+#lcn{font-size:11px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#lct{font-size:9px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+.nbtn{width:18px;height:18px;border:1px solid var(--bd);border-radius:3px;background:none;color:var(--muted);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;line-height:1}
+.nbtn:hover{border-color:var(--accent);color:var(--accent)}
+#lb{flex:1;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch}
+#lb::-webkit-scrollbar{width:3px}
+#lb::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+.li{display:flex;align-items:flex-start;gap:6px;padding:6px 9px;cursor:pointer;transition:background .1s;border-left:2px solid transparent}
+.li:hover{background:var(--s2)}
+.li.hl{border-left-color:var(--accent);background:rgba(6,200,216,.06)}
+.lsym{font-size:12px;width:16px;text-align:center;flex-shrink:0;margin-top:1px}
+.ltxt{min-width:0;flex:1}
+.lname{font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}
+.lvals{font-size:8px;color:var(--muted);font-family:var(--mono);display:flex;gap:5px;flex-wrap:wrap}
+.lval{padding:1px 4px;border-radius:2px;white-space:nowrap}
+.lval.pol{background:rgba(240,80,96,.1);color:var(--axis-pol)}
+.lval.soc{background:rgba(48,208,128,.1);color:var(--axis-soc)}
+.lval.econ{background:rgba(64,144,240,.1);color:var(--axis-econ)}
+
+/* Citation box */
+#cite-box{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:10px;flex-shrink:0;max-height:200px;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch}
+#cite-box::-webkit-scrollbar{width:3px}
+#cite-box::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+
+/* Tooltip */
+#tt{position:fixed;background:var(--s2);border:1px solid var(--bd2);border-radius:7px;padding:9px 12px;font-size:11px;pointer-events:none;display:none;z-index:9999;max-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.6)}
+.ttn{font-weight:700;font-size:12px;margin-bottom:3px}
+.ttc{color:var(--muted);font-family:var(--mono);font-size:9px;margin-bottom:6px}
+.tt-axes{display:flex;flex-direction:column;gap:3px}
+.tt-ax{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px}
+.tt-ax-lbl{width:50px;flex-shrink:0;opacity:.6}
+.tt-ax-bar{flex:1;height:4px;background:var(--bd);border-radius:2px;position:relative}
+.tt-ax-fill{height:100%;border-radius:2px;position:absolute}
+.tt-ax-val{width:32px;text-align:right;flex-shrink:0}
+
+/* Mobile overlay backdrop */
+#sb-backdrop{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.55);
+  z-index:199;
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+}
+
+/* ═══ MOBILE ≤768px ══════════════════════════════════════════════════════════ */
+@media(max-width:768px){
+  :root{--hdr-h:46px}
+
+  /* header tweaks */
+  #hdr h1{font-size:10px}
+  #stat{display:none}
+  #axis-legend{display:none!important}
+  #hbg{display:flex!important}
+
+  /* Spin buttons smaller */
+  .spin-btn{padding:2px 5px;font-size:8px}
+
+  /* Main becomes a simple column, chart takes full screen height */
+  #main{
+    flex-direction:column;
+    height:calc(100dvh - var(--hdr-h));
+    overflow:hidden;
+    position:relative;
+  }
+
+  /* Chart fills everything */
+  #cmp-wrap{
+    flex:1;
+    width:100%;
+    height:100%;
+    min-height:0;
+  }
+
+  /* Sidebar: slide-in panel from right, full height, z-layered above chart */
+  #sb{
+    position:fixed;
+    top:var(--hdr-h);
+    right:0;
+    bottom:0;
+    width:min(90vw, 320px);
+    min-width:0;
+    max-width:100vw;
+    height:calc(100dvh - var(--hdr-h));
+    z-index:200;
+    background:var(--bg);
+    border-left:1px solid var(--bd);
+    flex-direction:column;
+    padding:10px;
+    gap:8px;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    transform:translateX(100%);
+    transition:transform .28s cubic-bezier(.4,0,.2,1);
+    box-shadow:-8px 0 32px rgba(0,0,0,.7);
+  }
+  #sb.open{transform:translateX(0)}
+  #sb-backdrop.visible{display:block}
+
+  /* Party list taller on mobile since sidebar scrolls */
+  #lp{height:auto;min-height:180px;flex:0 0 auto}
+  #lb{max-height:300px}
+
+  /* Citation box */
+  #cite-box{max-height:240px}
+}
+
+/* ═══ TINY ≤400px ════════════════════════════════════════════════════════════ */
+@media(max-width:400px){
+  :root{--hdr-h:42px}
+  #hdr h1{font-size:9px}
+  #sb{width:100vw;border-left:none}
+  .spin-btn{padding:2px 4px;font-size:7px}
+}
+
+/* ── Settings panel ──────────────────────────────────────────────────── */
+#cog-btn{
+  background:none;border:1px solid var(--bd);border-radius:5px;
+  padding:4px 7px;cursor:pointer;color:var(--muted);font-size:13px;
+  line-height:1;transition:all .2s;flex-shrink:0;
+}
+#cog-btn:hover,#cog-btn.open{border-color:var(--accent);color:var(--accent);
+  background:rgba(6,200,216,.08);}
+#settings-overlay{
+  position:fixed;inset:0;z-index:9500;display:none;
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,.65);backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+}
+#settings-box{
+  background:var(--s1);border:1px solid var(--bd2);border-radius:12px;
+  width:min(560px,95vw);max-height:88vh;display:flex;flex-direction:column;
+  box-shadow:0 24px 64px rgba(0,0,0,.9);overflow:hidden;
+}
+.sv-hdr{
+  display:flex;align-items:center;gap:10px;padding:12px 16px;
+  background:var(--s2);border-bottom:1px solid var(--bd);flex-shrink:0;
+}
+.sv-hdr-title{font-size:12px;font-weight:700;color:var(--accent);
+  letter-spacing:.04em;flex:1;}
+.sv-body{overflow-y:auto;flex:1;padding:14px 16px;
+  font-size:10px;font-family:var(--mono);-webkit-overflow-scrolling:touch;}
+.sv-section{margin-bottom:18px;}
+.sv-section-title{font-size:9px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.sv-toggle-row{display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:1px solid var(--bd);}
+.sv-toggle-label{flex:1;font-size:10px;color:var(--tx);}
+.sv-toggle-desc{font-size:8px;color:var(--muted);margin-top:2px;}
+/* Toggle switch */
+.toggle{position:relative;width:34px;height:18px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;border-radius:18px;
+  background:var(--bd2);cursor:pointer;transition:background .2s;}
+.toggle-slider:before{content:'';position:absolute;height:12px;width:12px;
+  left:3px;bottom:3px;background:#fff;border-radius:50%;transition:transform .2s;}
+.toggle input:checked+.toggle-slider{background:var(--accent);}
+.toggle input:checked+.toggle-slider:before{transform:translateX(16px);}
+/* Progress bar */
+#upd-progress{display:none;margin-top:10px;}
+.prog-step{display:flex;align-items:center;gap:8px;padding:5px 0;
+  font-size:9px;font-family:var(--mono);}
+.prog-icon{width:14px;text-align:center;flex-shrink:0;}
+.prog-text{flex:1;color:var(--muted);}
+.prog-text.active{color:var(--tx);}
+.prog-text.done{color:var(--green);}
+.prog-text.err{color:var(--red);}
+.prog-bar-wrap{height:3px;background:var(--bd);border-radius:2px;
+  margin:4px 0 8px;overflow:hidden;}
+.prog-bar{height:100%;border-radius:2px;width:0;
+  background:var(--accent);transition:width .4s ease;}
+#upd-run-btn{
+  width:100%;padding:8px;border-radius:6px;font-size:10px;
+  font-family:var(--font);font-weight:600;cursor:pointer;
+  background:rgba(6,200,216,.12);border:1px solid var(--accent);
+  color:var(--accent);transition:all .2s;margin-top:6px;
+}
+#upd-run-btn:hover:not(:disabled){background:rgba(6,200,216,.22);}
+#upd-run-btn:disabled{opacity:.4;cursor:not-allowed;}
+/* Change log */
+#chg-log{display:none;margin-top:10px;}
+.log-entry{display:flex;flex-wrap:wrap;gap:6px;padding:4px 7px;
+  background:var(--s2);border-radius:4px;margin-bottom:3px;font-size:8px;}
+.log-party{color:var(--tx);flex:1;min-width:100px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.log-delta{display:flex;gap:4px;}
+.log-dp{padding:1px 4px;border-radius:2px;}
+.log-dp.pol{background:rgba(240,80,96,.12);color:var(--axis-pol);}
+.log-dp.soc{background:rgba(48,208,128,.12);color:var(--axis-soc);}
+.log-dp.eco{background:rgba(64,144,240,.12);color:var(--axis-econ);}
+.log-meta{color:var(--muted);font-size:7px;width:100%;}
+
+</style>
+</head>
+<body>
+<!-- Backdrop for mobile sidebar -->
+<div id="sb-backdrop"></div>
+
+<div id="hdr">
+  <!-- Hamburger (mobile only) -->
+  <button id="hbg" aria-label="Open filters">☰</button>
+  <h1>⊕ GLOBAL POLITICAL COMPASS — 3D</h1>
+  <div class="dot"></div>
+  <span id="stat">Loading…</span>
+
+  <!-- Spin controls -->
+  <div id="spin-ctrl">
+    <button class="spin-btn on" id="btn-spin" title="Toggle auto-rotate (Space)">⟳ Spin</button>
+    <button class="spin-btn" id="btn-pause" title="Pause / Resume rotation">⏸</button>
+    <button class="spin-btn" id="btn-stop" title="Stop rotation and reset view">⏹</button>
+  </div>
+
+  <!-- Cogwheel -->
+  <button id="cog-btn" title="Settings &amp; data updates">⚙</button>
+
+  <div id="axis-legend">
+    <span class="axl pol">X(P) · POLITICAL ←progressive · conservative→</span>
+    <span class="axl soc">Y(S) · SOCIAL ←libertarian · authoritarian→</span>
+    <span class="axl econ">Z(E) · ECONOMIC ←planned · free market→</span>
+  </div>
+</div>
+
+<div id="main">
+  <div id="cmp-wrap">
+    <canvas id="c3d"></canvas>
+    <div id="ax-pol-neg" class="ax-label pol">◀ PROGRESSIVE</div>
+    <div id="ax-pol-pos" class="ax-label pol">CONSERVATIVE ▶</div>
+    <div id="ax-soc-neg" class="ax-label soc">▼ LIBERTARIAN</div>
+    <div id="ax-soc-pos" class="ax-label soc">▲ AUTHORITARIAN</div>
+    <div id="ax-econ-neg" class="ax-label econ">PLANNED ●</div>
+    <div id="ax-econ-pos" class="ax-label econ">● FREE MARKET</div>
+    <div style="position:absolute;bottom:8px;left:8px;font-family:var(--mono);font-size:8px;color:var(--muted);opacity:.5;pointer-events:none;line-height:1.6">
+      Sources: CHES 2024 · GPS 2019 (Norris, Harvard, 163 countries) · V-Party (V-Dem, 169 countries) · Manifesto Project · Freedom House<br>
+      <span style='color:var(--accent2)'>* Estimated (not in any expert survey / formed after 2019)</span> · Drag · Scroll · Click · Space=spin
+    </div>
+  </div>
+
+  <div id="sb">
+    <div id="fp">
+      <div>
+        <label class="flabel">⌕ Search</label>
+        <div style="display:flex;align-items:center;gap:5px">
+          <input id="q" type="search" placeholder="Party or country name…" autocomplete="off"
+            style="flex:1;background:var(--bg);border:1px solid var(--bd);border-radius:4px;
+                   color:var(--tx);padding:4px 7px;font-size:10px;font-family:var(--font);
+                   outline:none;transition:border-color .15s"
+            id="q-input"
+            >
+          <button id="q-clr" style="display:none;background:none;border:none;color:var(--muted);
+            cursor:pointer;font-size:13px;padding:0 3px;line-height:1;flex-shrink:0">✕</button>
+        </div>
+      </div>
+      <div>
+        <label class="flabel">Continent</label>
+        <select id="sCont">
+          <option value="">All Continents</option>
+          <option>Africa</option><option>Asia</option><option>Europe</option>
+          <option>North America</option><option>South America</option><option>Oceania</option>
+        </select>
+      </div>
+      <div>
+        <label class="flabel">Country</label>
+        <select id="sCoun"></select>
+      </div>
+      <div>
+        <label class="flabel">Orientation filter</label>
+        <div class="chips">
+          <button class="chip on" data-o="">All</button>
+          <button class="chip" data-o="far-left">Far Left</button>
+          <button class="chip" data-o="left">Left</button>
+          <button class="chip" data-o="center-left">Ctr-Left</button>
+          <button class="chip" data-o="center">Center</button>
+          <button class="chip" data-o="center-right">Ctr-Right</button>
+          <button class="chip" data-o="right">Right</button>
+          <button class="chip" data-o="far-right">Far Right</button>
+          <button class="chip auth" data-o="authoritarian">Authoritarian</button>
+          <button class="chip lib" data-o="liberal">Liberal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estimation legend note -->
+    <div style="font-size:8px;font-family:var(--mono);color:var(--muted);line-height:1.5;padding:5px 8px;background:var(--s1);border:1px solid var(--bd);border-radius:6px;flex-shrink:0">
+      <span style="color:var(--accent2)">*</span> = Estimated position (not in GPS 2019 or V-Party).<br>
+      All other positions: GPS 2019 · CHES 2024 · V-Party · Manifesto Project.
+    </div>
+    <!-- 2D compass -->
+    <div id="c2d-wrap">
+      <div id="c2d-hdr">
+        <span id="c2d-title">2D Projection</span>
+        <button class="proj-btn on" data-proj="xy">P×S</button>
+        <button class="proj-btn" data-proj="xz">P×E</button>
+        <button class="proj-btn" data-proj="yz">S×E</button>
+      </div>
+      <canvas id="c2d" width="240" height="240"></canvas>
+    </div>
+
+    <!-- Legend carousel -->
+    <div id="lp">
+      <div id="lh">
+        <span id="lcn">All Countries</span>
+        <span id="lct"></span>
+        <button class="nbtn" id="bPrev">‹</button>
+        <button class="nbtn" id="bNext">›</button>
+      </div>
+      <div id="lb"></div>
+    </div>
+
+    <!-- Citation panel -->
+    <div id="cite-box">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">📚 Verified Sources</div>
+      <div id="cite-content" style="font-size:9px;font-family:var(--mono);color:var(--tx);line-height:1.65;opacity:.85"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SETTINGS OVERLAY ═══════════════════════════════════════════════════ -->
+<div id="settings-overlay">
+  <div id="settings-box">
+    <div class="sv-hdr">
+      <span style="font-size:16px">⚙</span>
+      <span class="sv-hdr-title">Settings</span>
+      <button id="sv-close" style="background:none;border:none;color:var(--muted);
+        cursor:pointer;font-size:18px;padding:0 4px;line-height:1">✕</button>
+    </div>
+    <div class="sv-body">
+
+      <!-- ── Display section ──────────────────────────────────────── -->
+      <div class="sv-section">
+        <div class="sv-section-title">Display</div>
+        <label class="sv-toggle-row">
+          <div>
+            <div class="sv-toggle-label">Auto-rotate on idle</div>
+            <div class="sv-toggle-desc">Globe spins after 4 seconds of inactivity</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="tog-autorot" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </label>
+        <label class="sv-toggle-row">
+          <div>
+            <div class="sv-toggle-label">Show estimated (*) parties</div>
+            <div class="sv-toggle-desc">Parties without expert-survey data are marked with *</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="tog-showest" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </label>
+        <label class="sv-toggle-row">
+          <div>
+            <div class="sv-toggle-label">Show axis labels</div>
+            <div class="sv-toggle-desc">PROGRESSIVE / CONSERVATIVE labels on the 3D axes</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="tog-axlabels" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </label>
+      </div>
+
+      <!-- ── Advanced / data section ──────────────────────────────── -->
+      <div class="sv-section">
+        <div class="sv-section-title">Advanced — Data Updates</div>
+        <label class="sv-toggle-row">
+          <div>
+            <div class="sv-toggle-label">Enable server-side data updates</div>
+            <div class="sv-toggle-desc">Fetches Wikidata ideology tags via /api endpoints.
+              Runs once per month automatically. Requires deployment on Vercel.</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="tog-advanced">
+            <span class="toggle-slider"></span>
+          </label>
+        </label>
+
+        <!-- Advanced options block — hidden until toggle is on -->
+        <div id="adv-block" style="display:none;margin-top:10px;">
+
+          <!-- Survey version status -->
+          <div style="font-size:8px;color:var(--muted);margin-bottom:8px;
+            font-weight:600;letter-spacing:.08em;text-transform:uppercase">
+            Expert Survey Versions</div>
+          <div id="sv-versions" style="display:grid;gap:4px;margin-bottom:12px">
+            <div style="color:var(--muted);font-size:8px">Click "Run update" to check versions.</div>
+          </div>
+
+          <!-- Last run info -->
+          <div id="last-run-info" style="font-size:8px;color:var(--muted);
+            margin-bottom:10px;padding:6px 8px;background:var(--s2);
+            border-radius:5px;border:1px solid var(--bd);display:none">
+          </div>
+
+          <!-- Progress display -->
+          <div id="upd-progress">
+            <div class="prog-bar-wrap"><div class="prog-bar" id="prog-bar"></div></div>
+            <div class="prog-step"><span class="prog-icon" id="pi-0">○</span>
+              <span class="prog-text" id="pt-0">Checking survey versions…</span></div>
+            <div class="prog-step"><span class="prog-icon" id="pi-1">○</span>
+              <span class="prog-text" id="pt-1">Fetching ideology data (batch 1/6)…</span></div>
+            <div class="prog-step"><span class="prog-icon" id="pi-2">○</span>
+              <span class="prog-text" id="pt-2">Fetching ideology data (batch 2/6)…</span></div>
+            <div class="prog-step"><span class="prog-icon" id="pi-3">○</span>
+              <span class="prog-text" id="pt-3">Fetching ideology data (batch 3/6)…</span></div>
+            <div class="prog-step"><span class="prog-icon" id="pi-4">○</span>
+              <span class="prog-text" id="pt-4">Fetching ideology data (batch 4/6)…</span></div>
+            <div class="prog-step"><span class="prog-icon" id="pi-5">○</span>
+              <span class="prog-text" id="pt-5">Fetching ideology data (batch 5/6)…</span></div>
+            <div class="prog-step"><span class="prog-icon" id="pi-6">○</span>
+              <span class="prog-text" id="pt-6">Fetching ideology data (batch 6/6)…</span></div>
+            <div class="prog-step"><span class="prog-icon" id="pi-7">○</span>
+              <span class="prog-text" id="pt-7">Applying coordinate updates…</span></div>
+          </div>
+
+          <button id="upd-run-btn">⟳ Run update now</button>
+
+          <!-- Change log -->
+          <div id="chg-log">
+            <div style="font-size:8px;color:var(--muted);margin:10px 0 6px;
+              font-weight:600;letter-spacing:.08em;text-transform:uppercase">
+              Change log</div>
+            <div id="chg-log-body"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="tt">
+  <div class="ttn" id="ttn"></div>
+  <div class="ttc" id="ttc"></div>
+  <div class="tt-axes" id="tt-axes"></div>
+  <div id="tt-srcs" style="margin-top:5px;font-size:8px;color:var(--muted);font-family:var(--mono);line-height:1.5;border-top:1px solid var(--bd);padding-top:4px;display:none"></div>
+</div>
+<script>
+// ─── DOM cache — avoid repeated getElementById lookups ────────────────────────
+const $={};
+['hdr','stat','c3d','c2d','sb','sb-backdrop','cmp-wrap','hbg',
+ 'ax-pol-neg','ax-pol-pos','ax-soc-neg','ax-soc-pos','ax-econ-neg','ax-econ-pos',
+ 'sCont','sCoun','q','q-clr','c2d-title','lcn','lct','lb','lp','lh',
+ 'bPrev','bNext','c3d','c2d','cite-box','cite-content','tt','ttn','ttc','tt-axes','tt-srcs',
+ 'btn-spin','btn-pause','btn-stop','spin-ctrl','axis-legend'].forEach(id=>{
+  $[id]=document.getElementById(id);
+});
+function $$(sel){return document.querySelectorAll(sel);}
+
+// ═══════════════════════════════════════════════════════════════
+// DATA  [country, continent, name, x_pol, y_soc, z_econ]
+// x_pol: -10 progressive ↔ +10 conservative  (X axis, red)
+// y_soc: -10 libertarian ↔ +10 authoritarian (Y axis, green)
+// z_econ:-10 planned/left ↔ +10 free market  (Z axis, blue)
+//
+// Sources verified per entry:
+// EU/Turkey: CHES 2024 (Rovny et al., Electoral Studies 2025)
+// Americas: Political Compass 2024-25, Manifesto Project
+// Asia/Africa: V-Dem v14, Freedom House 2024, Manifesto Project
+// Minimum 3 independent academic/institutional sources per country
+// ═══════════════════════════════════════════════════════════════
+const RAW3D=[["United Kingdom","Europe","Labour Party",-3.0,-3.0,-3.5],["United Kingdom","Europe","Conservative Party",4.5,2.5,4.0],["United Kingdom","Europe","Liberal Democrats",0.5,-4.5,1.5],["United Kingdom","Europe","Scottish National Party",-3.0,-2.5,-2.5],["United Kingdom","Europe","Green Party (England & Wales)",-6.5,-6.5,-5.5],["United Kingdom","Europe","Reform UK",7.0,3.0,5.5],["United Kingdom","Europe","Plaid Cymru",-4.5,-2.5,-4.0],["United Kingdom","Europe","Democratic Unionist Party",6.0,5.0,4.0],["United Kingdom","Europe","Sinn F\u00e9in (NI)",-4.5,1.5,-4.5],["United Kingdom","Europe","Social Democratic and Labour Party",-2.5,0.5,-2.5],["United Kingdom","Europe","Alliance Party of Northern Ireland",-0.5,-3.5,1.0],["United Kingdom","Europe","Ulster Unionist Party",4.5,2.5,3.5],["United Kingdom","Europe","Traditional Unionist Voice",7.5,5.0,4.5],["United Kingdom","Europe","People Before Profit",-7.5,-3.5,-7.5],["United Kingdom","Europe","Scottish Greens",-6.5,-7.0,-5.5],["United Kingdom","Europe","Alba Party",-3.5,0.5,-3.5],["United Kingdom","Europe","Workers Party of Britain",-5.0,4.0,-6.5],["Germany","Europe","SPD",-2.0,-2.8,-3.1],["Germany","Europe","CDU",4.0,3.1,3.2],["Germany","Europe","Gr\u00fcne",-5.5,-6.8,-3.3],["Germany","Europe","FDP",1.0,-3.6,5.2],["Germany","Europe","AfD",9.0,8.8,3.0],["Germany","Europe","Die Linke",-6.5,-5.4,-7.3],["Germany","Europe","BSW",5.5,4.1,-4.4],["Germany","Europe","Freie W\u00e4hler",4.0,2.0,2.0],["Germany","Europe","Volt Deutschland",-4.0,-4.5,-1.5],["Germany","Europe","\u00d6DP",-4.5,-4.5,-4.0],["Germany","Europe","Die PARTEI",-4.0,-6.0,-2.5],["Germany","Europe","SSW",-3.5,-3.0,-3.5],["Germany","Europe","CSU",5.0,5.1,3.5],["France","Europe","La France Insoumise",-6.5,-1.5,-7.0],["France","Europe","Parti Socialiste",-3.5,-3.0,-3.5],["France","Europe","Parti Communiste Fran\u00e7ais",-6.0,0.5,-8.0],["France","Europe","Europe \u00c9cologie Les Verts",-6.5,-6.0,-5.0],["France","Europe","Renaissance",1.0,-2.5,2.5],["France","Europe","Horizons",1.5,-1.0,3.0],["France","Europe","Les R\u00e9publicains",5.0,2.0,5.0],["France","Europe","Rassemblement National",8.0,5.5,1.5],["France","Europe","Reconqu\u00eate",9.0,6.5,3.0],["France","Europe","Debout la France",7.5,4.0,3.5],["France","Europe","Nouveau Centre",2.5,0.5,2.5],["France","Europe","Place Publique",-4.0,-3.5,-3.5],["Italy","Europe","Partito Democratico",-4.0,-3.0,-3.5],["Italy","Europe","Fratelli d'Italia",8.0,6.5,4.0],["Italy","Europe","Lega",8.0,5.0,3.0],["Italy","Europe","Movimento 5 Stelle",-1.5,1.5,-2.0],["Italy","Europe","Forza Italia",4.5,1.0,4.5],["Italy","Europe","Alleanza Verdi e Sinistra",-6.5,-4.5,-6.0],["Italy","Europe","Azione",1.5,-2.5,2.5],["Italy","Europe","Italia Viva",1.5,-2.5,2.5],["Italy","Europe","Noi Moderati",4.0,2.0,4.0],["Italy","Europe","Sinistra Italiana",-7.0,-3.5,-7.0],["Italy","Europe","S\u00fcdtiroler Volkspartei",2.0,1.5,2.0],["Italy","Europe","+Europa",-1.0,-4.5,0.5],["Spain","Europe","PSOE",-3.5,-2.5,-3.0],["Spain","Europe","Partido Popular",5.0,2.0,4.5],["Spain","Europe","Vox",8.5,6.0,4.0],["Spain","Europe","Sumar",-6.5,-4.0,-6.0],["Spain","Europe","Junts",2.0,1.5,-1.0],["Spain","Europe","ERC",-4.5,-2.0,-4.5],["Spain","Europe","PNV/EAJ",0.5,0.5,0.5],["Spain","Europe","EH Bildu",-6.5,-2.0,-6.5],["Spain","Europe","Coalici\u00f3n Canaria",2.0,1.5,2.0],["Spain","Europe","Partido Regionalista de Cantabria",2.0,2.0,2.0],["Spain","Europe","Comprom\u00eds",-5.5,-3.0,-5.0],["Sweden","Europe","Socialdemokraterna",-2.5,-2.5,-3.5],["Sweden","Europe","Moderaterna",4.5,0.5,4.5],["Sweden","Europe","Sverigedemokraterna",8.5,6.0,2.0],["Sweden","Europe","V\u00e4nsterpartiet",-7.5,-3.5,-7.5],["Sweden","Europe","Milj\u00f6partiet",-6.5,-7.0,-5.0],["Sweden","Europe","Kristdemokraterna",4.5,3.5,3.5],["Sweden","Europe","Centerpartiet",0.5,-3.5,2.5],["Sweden","Europe","Liberalerna",0.5,-3.0,3.0],["Netherlands","Europe","PVV",8.5,6.5,2.5],["Netherlands","Europe","VVD",4.0,-1.0,5.0],["Netherlands","Europe","D66",-1.5,-5.0,1.5],["Netherlands","Europe","GroenLinks-PvdA",-5.0,-4.5,-4.0],["Netherlands","Europe","SP",-5.5,-1.0,-7.0],["Netherlands","Europe","NSC",4.0,2.0,3.5],["Netherlands","Europe","CDA",3.5,2.0,3.0],["Netherlands","Europe","BoerBurgerBeweging",6.0,2.5,3.0],["Netherlands","Europe","JA21",6.0,-1.0,5.5],["Netherlands","Europe","Partij voor de Dieren",-5.5,-7.0,-4.5],["Netherlands","Europe","ChristenUnie",3.0,4.0,2.5],["Poland","Europe","Prawo i Sprawiedliwo\u015b\u0107",7.5,7.5,2.5],["Poland","Europe","Platforma Obywatelska",3.5,0.5,3.5],["Poland","Europe","Konfederacja",7.0,-4.0,7.0],["Poland","Europe","Lewica",-6.0,-3.5,-5.5],["Poland","Europe","Polskie Stronnictwo Ludowe",2.0,2.5,1.5],["Poland","Europe","Polska 2050",1.5,-1.5,1.5],["Poland","Europe","Kukiz'15",5.0,0.0,4.5],["Hungary","Europe","Fidesz",8.5,8.0,2.0],["Hungary","Europe","Jobbik / MSZP Alliance",5.0,3.5,2.0],["Hungary","Europe","Demokratikus Koal\u00edci\u00f3",-2.0,-1.5,-3.0],["Hungary","Europe","MSZP",-2.5,-2.0,-3.5],["Hungary","Europe","Momentum",-1.0,-4.0,-0.5],["Hungary","Europe","Mi Haz\u00e1nk",9.5,6.5,1.5],["Hungary","Europe","P\u00e1rbesz\u00e9d",-2.5,-3.0,-3.0],["Greece","Europe","Nea Dimokratia",5.0,2.5,4.5],["Greece","Europe","SYRIZA",-5.0,-2.5,-5.5],["Greece","Europe","PASOK",-2.0,-2.0,-2.5],["Greece","Europe","KKE",-7.0,2.0,-9.0],["Greece","Europe","Elliniki Lysi",8.5,5.5,3.5],["Greece","Europe","Spartiates",8.0,5.0,3.0],["Greece","Europe","Plefsi Eleftherias",-4.0,-4.5,-4.0],["Greece","Europe","Niki",8.5,6.0,3.5],["Portugal","Europe","Partido Socialista",-3.0,-2.5,-3.0],["Portugal","Europe","PSD",4.0,1.0,3.5],["Portugal","Europe","Chega",8.0,5.5,3.5],["Portugal","Europe","Bloco de Esquerda",-7.0,-4.0,-8.0],["Portugal","Europe","CDU (PCP-PEV)",-6.0,1.0,-7.0],["Portugal","Europe","Iniciativa Liberal",0.5,-5.0,5.5],["Portugal","Europe","PAN",-5.0,-6.0,-4.0],["Portugal","Europe","Livre",-6.5,-5.0,-6.5],["Switzerland","Europe","SVP",8.0,3.0,5.5],["Switzerland","Europe","SP",-4.0,-3.5,-4.0],["Switzerland","Europe","FDP",2.0,-3.5,5.0],["Switzerland","Europe","Die Mitte",3.0,1.5,1.5],["Switzerland","Europe","Gr\u00fcne",-6.5,-7.5,-5.0],["Switzerland","Europe","GLP",-0.5,-4.0,2.0],["Switzerland","Europe","EVP",2.5,2.0,1.5],["Switzerland","Europe","Lega dei Ticinesi",7.0,3.0,3.5],["Austria","Europe","\u00d6VP",5.0,2.5,3.5],["Austria","Europe","FP\u00d6",9.0,6.5,2.0],["Austria","Europe","SP\u00d6",-3.0,-2.5,-3.5],["Austria","Europe","NEOS",0.5,-5.0,4.5],["Austria","Europe","Gr\u00fcne",-5.5,-7.0,-4.5],["Austria","Europe","KP\u00d6",-6.5,-2.0,-8.5],["Austria","Europe","MFG",5.5,0.5,3.0],["Belgium","Europe","MR",3.5,0.4,6.0],["Belgium","Europe","PS",-4.0,-4.4,-5.1],["Belgium","Europe","N-VA",7.5,4.2,5.0],["Belgium","Europe","Vlaams Belang",9.3,7.8,4.0],["Belgium","Europe","PTB-PVDA",-5.5,-3.6,-8.4],["Belgium","Europe","Les Engag\u00e9s",3.0,1.5,0.7],["Belgium","Europe","cd&v",3.5,3.6,1.2],["Belgium","Europe","Open VLD",1.5,-4.0,4.0],["Belgium","Europe","Vooruit",-2.0,-3.8,-1.8],["Belgium","Europe","Ecolo",-5.5,-6.9,-5.1],["Belgium","Europe","Groen",-5.5,-6.8,-4.6],["Belgium","Europe","D\u00e9FI",0.5,-2.5,1.0],["Denmark","Europe","Socialdemokratiet",-1.5,0.5,-2.5],["Denmark","Europe","Venstre",4.5,-0.5,5.0],["Denmark","Europe","Dansk Folkeparti",8.5,4.5,3.0],["Denmark","Europe","SF",-6.0,-4.5,-5.5],["Denmark","Europe","Enhedslisten",-8.5,-4.0,-8.5],["Denmark","Europe","Moderaterne",2.5,-1.5,3.0],["Denmark","Europe","Konservative",5.0,1.5,5.0],["Denmark","Europe","Radikale Venstre",-1.0,-5.0,1.5],["Denmark","Europe","Danmarksdemokraterne",7.5,3.5,3.0],["Denmark","Europe","Liberal Alliance",3.0,-5.0,6.5],["Denmark","Europe","Alternativet",-6.5,-7.5,-5.0],["Norway","Europe","Arbeiderpartiet",-2.5,-2.0,-3.5],["Norway","Europe","H\u00f8yre",3.5,-2.5,4.0],["Norway","Europe","Fremskrittspartiet",7.5,2.0,5.5],["Norway","Europe","SV",-7.5,-5.0,-7.0],["Norway","Europe","Senterpartiet",2.0,2.5,-0.5],["Norway","Europe","Venstre",-0.5,-5.0,2.5],["Norway","Europe","Kristelig Folkeparti",4.0,3.5,2.5],["Norway","Europe","Milj\u00f8partiet De Gr\u00f8nne",-6.5,-7.5,-5.0],["Norway","Europe","R\u00f8dt",-8.5,-3.0,-9.0],["Norway","Europe","Partiet Sentrum",0.0,0.0,0.5],["Finland","Europe","SDP",-2.5,-2.5,-3.5],["Finland","Europe","Kokoomus",4.0,1.5,4.5],["Finland","Europe","Perussuomalaiset",8.0,5.5,2.5],["Finland","Europe","Vasemmistoliitto",-7.0,-4.5,-7.5],["Finland","Europe","Vihre\u00e4t",-6.0,-7.5,-4.5],["Finland","Europe","Keskusta",1.5,2.0,-0.5],["Finland","Europe","Kristillisdemokraatit",4.5,4.5,2.5],["Finland","Europe","RKP/SFP",-0.5,-2.5,1.0],["Finland","Europe","Liike Nyt",3.0,-2.5,3.5],["Ireland","Europe","Fianna F\u00e1il",1.5,0.5,1.5],["Ireland","Europe","Fine Gael",3.5,-0.5,3.5],["Ireland","Europe","Sinn F\u00e9in",-5.5,-0.5,-5.5],["Ireland","Europe","Labour",-3.5,-3.5,-4.0],["Ireland","Europe","Social Democrats",-5.0,-4.0,-5.0],["Ireland","Europe","Green Party",-5.5,-6.5,-5.5],["Ireland","Europe","Aont\u00fa",-2.5,2.5,-3.5],["Ireland","Europe","People Before Profit\u2013Solidarity",-8.0,-4.5,-8.0],["Czech Republic","Europe","ANO",4.5,3.5,2.5],["Czech Republic","Europe","ODS",5.5,1.5,6.0],["Czech Republic","Europe","SPD",8.0,6.0,3.5],["Czech Republic","Europe","Pir\u00e1ti",-3.5,-6.0,-2.5],["Czech Republic","Europe","STAN",2.5,-1.5,2.5],["Czech Republic","Europe","KDU-\u010cSL",3.5,3.0,2.5],["Czech Republic","Europe","P\u0159\u00edsaha",5.0,2.0,4.0],["Czech Republic","Europe","KS\u010cM",-5.5,1.0,-8.0],["Slovakia","Europe","Smer",6.0,5.5,1.5],["Slovakia","Europe","Progres\u00edvne Slovensko",-1.5,-4.5,0.5],["Slovakia","Europe","SaS",4.0,-3.5,5.5],["Slovakia","Europe","SNS",8.5,5.5,3.0],["Slovakia","Europe","KDH",5.0,4.0,4.0],["Slovakia","Europe","Hlas-SD",3.0,2.5,2.0],["Slovakia","Europe","O\u013daNO",5.5,3.5,4.0],["Romania","Europe","PSD",1.0,4.0,-0.5],["Romania","Europe","PNL",4.0,2.0,4.5],["Romania","Europe","USR",1.0,-3.5,1.5],["Romania","Europe","AUR",8.5,6.5,2.0],["Romania","Europe","SOS Rom\u00e2nia",8.5,7.0,2.5],["Romania","Europe","UDMR",1.5,1.5,1.5],["Romania","Europe","PMP",6.0,3.5,5.0],["Bulgaria","Europe","GERB",5.0,3.0,4.0],["Bulgaria","Europe","BSP",-1.5,2.0,-3.5],["Bulgaria","Europe","DPS",3.0,3.5,2.0],["Bulgaria","Europe","Vazrazhdane",8.0,7.0,2.0],["Bulgaria","Europe","Produlzhavame Promyanata",-0.5,-2.5,-0.5],["Bulgaria","Europe","Demokratichna Bulgaria",0.5,-3.5,0.5],["Bulgaria","Europe","ITN",2.5,-1.0,2.0],["Croatia","Europe","HDZ",6.0,3.5,4.5],["Croatia","Europe","SDP",-4.0,-2.5,-3.5],["Croatia","Europe","Most",5.5,2.0,5.0],["Croatia","Europe","Domovinski pokret",8.0,5.5,2.5],["Croatia","Europe","Mo\u017eemo!",-6.0,-5.5,-6.0],["Croatia","Europe","Istarski demokratski sabor",-1.5,-2.5,-1.5],["Serbia","Europe","Srpska napredna stranka",6.5,6.5,1.5],["Serbia","Europe","SPS",4.0,5.5,0.5],["Serbia","Europe","Stranka slobode i pravde",-1.5,-2.0,-1.5],["Serbia","Europe","Dveri",8.0,5.5,0.5],["Serbia","Europe","Zeleno-Levi Front",-6.5,-3.5,-6.0],["Serbia","Europe","NADA",8.5,6.5,1.5],["Ukraine","Europe","Sluha Narodu",2.5,1.5,2.0],["Ukraine","Europe","Opozytsionnaya Platforma",0.5,3.5,-0.5],["Ukraine","Europe","Svoboda",9.5,5.0,2.5],["Ukraine","Europe","Batkivshchyna",3.5,1.5,2.5],["Ukraine","Europe","UDAR",3.0,0.5,3.0],["Ukraine","Europe","Pravyi Sektor",9.5,4.0,3.0],["Ukraine","Europe","Yevropeyska Solidarnist",3.5,1.0,3.0],["Russia","Europe","Edinaya Rossiya",6.5,9.5,2.5],["Russia","Europe","LDPR",8.5,8.0,2.0],["Russia","Europe","KPRF",4.0,7.5,-5.0],["Russia","Europe","Spravedlivaya Rossiya",2.5,5.5,-1.5],["Russia","Europe","Yabloko",0.5,-2.0,2.0],["Russia","Europe","Novoye Lyudi",2.5,0.0,3.5],["Russia","Europe","Rodina",6.0,7.5,-1.0],["Belarus","Europe","Belaya Rus'",5.5,9.5,1.5],["Belarus","Europe","LDPB",7.5,9.0,1.5],["Belarus","Europe","Kommunisticheskaya partiya",-0.5,9.0,-3.0],["Moldova","Europe","Partidul Ac\u021biune \u0219i Solidaritate",-1.5,-2.0,-1.0],["Moldova","Europe","PSRM",1.5,5.0,-2.0],["Moldova","Europe","\u0218or",4.0,5.5,1.5],["Moldova","Europe","Partidul Democrat din Moldova",3.0,3.0,2.0],["Moldova","Europe","PLDM",2.5,0.5,2.5],["Lithuania","Europe","LSDP",-2.5,-2.5,-3.0],["Lithuania","Europe","TS-LKD",5.0,2.0,4.5],["Lithuania","Europe","LLRA",2.5,3.5,1.5],["Lithuania","Europe","LV\u017dS",1.5,3.0,-1.0],["Lithuania","Europe","Laisv\u0117s partija",-0.5,-3.5,1.5],["Lithuania","Europe","DP",1.5,-1.0,1.5],["Latvia","Europe","Saska\u0146a",-1.5,1.5,-3.0],["Latvia","Europe","JV",3.0,-1.5,3.5],["Latvia","Europe","NA",7.5,4.0,3.5],["Latvia","Europe","LPV",7.0,3.5,3.0],["Latvia","Europe","Za\u013co un Zemnieku savien\u012bba",2.0,2.0,1.5],["Latvia","Europe","Att\u012bst\u012bbai/Par!",0.5,-3.5,1.5],["Estonia","Europe","SDE",-2.5,-2.5,-2.5],["Estonia","Europe","Reformierakond",3.0,-3.5,4.5],["Estonia","Europe","EKRE",8.5,5.5,3.5],["Estonia","Europe","KE",0.5,2.5,-0.5],["Estonia","Europe","Isamaa",5.0,3.5,4.0],["Estonia","Europe","Eesti 200",-0.5,-3.5,2.0],["Luxembourg","Europe","Chr\u00ebschtlech Sozial Vollekspartei",3.0,1.5,2.5],["Luxembourg","Europe","L\u00ebtzebuerger Sozialistesch Arbechterpartei",-3.0,-2.5,-3.5],["Luxembourg","Europe","Demokratesch Partei",1.0,-3.5,3.0],["Luxembourg","Europe","d\u00e9i Gr\u00e9ng",-6.0,-7.0,-5.0],["Luxembourg","Europe","Alternativ Demokratesch Reformpartei",6.0,2.0,5.0],["Luxembourg","Europe","Piraten",-3.0,-6.0,-2.0],["Malta","Europe","Nationalist Party",4.5,2.0,4.0],["Malta","Europe","Labour Party (Malta)",-2.0,0.0,-2.5],["Malta","Europe","ADPD \u2013 The Green Party",-6.0,-7.0,-5.5],["Cyprus","Europe","Democratic Rally",4.5,1.0,4.0],["Cyprus","Europe","AKEL",-5.5,0.5,-7.5],["Cyprus","Europe","Democratic Party",2.0,1.0,1.5],["Cyprus","Europe","Movement for Social Democracy",-3.5,-2.0,-3.5],["Cyprus","Europe","National Popular Front",8.0,5.5,3.0],["Iceland","Europe","Independence Party",4.5,0.5,4.5],["Iceland","Europe","Social Democratic Alliance",-3.5,-3.0,-3.5],["Iceland","Europe","Left-Green Movement",-7.5,-5.0,-7.0],["Iceland","Europe","Progressive Party",1.5,1.5,-0.5],["Iceland","Europe","Vi\u00f0reisn",-0.5,-5.0,2.5],["Iceland","Europe","Pirate Party",-3.5,-7.0,-2.5],["Iceland","Europe","People's Party",6.5,3.5,3.0],["Liechtenstein","Europe","Fortschrittliche B\u00fcrgerpartei",3.5,0.5,3.5],["Liechtenstein","Europe","Vaterl\u00e4ndische Union",3.5,2.0,3.0],["Liechtenstein","Europe","Freie Liste",-4.0,-4.5,-3.5],["Montenegro","Europe","Demokratska Partija Socijalista",3.5,4.5,2.0],["Montenegro","Europe","Srpska Narodna Stranka",7.0,4.0,2.5],["Montenegro","Europe","Demokratska Fronta",7.5,5.0,2.0],["Montenegro","Europe","Ujedinjena Reforma Akcija",0.5,-2.0,0.5],["Montenegro","Europe","Europe Now Movement",0.5,-1.5,0.5],["North Macedonia","Europe","VMRO-DPMNE",7.0,4.5,3.5],["North Macedonia","Europe","SDSM",-1.5,-1.0,-1.5],["North Macedonia","Europe","BDI / DUI",2.0,4.0,0.5],["North Macedonia","Europe","DPA",3.0,4.5,1.0],["North Macedonia","Europe","BESA",-2.5,-1.5,-2.0],["Albania","Europe","Partia Socialiste",-3.5,-1.5,-3.5],["Albania","Europe","Partia Demokratike",4.5,1.5,4.0],["Albania","Europe","L\u00ebvizja Socialiste p\u00ebr Integrim",0.5,2.0,0.0],["Albania","Europe","L\u00ebvizja Bashk\u00eb",0.0,-2.5,0.0],["Albania","Europe","Partia e Liris\u00eb",-2.5,-2.0,-2.0],["Kosovo","Europe","L\u00ebvizja Vet\u00ebvendosje",-4.5,-2.5,-4.5],["Kosovo","Europe","Partia Demokratike e Kosov\u00ebs",3.5,1.0,3.5],["Kosovo","Europe","Lidhja Demokratike e Kosov\u00ebs",2.0,0.5,1.5],["Kosovo","Europe","Aleanca p\u00ebr Ardhm\u00ebrin\u00eb e Kosov\u00ebs",3.5,0.5,3.0],["Kosovo","Europe","Nisma Socialdemokrate",1.5,2.0,1.0],["Bosnia and Herzegovina","Europe","Stranka demokratske akcije",3.5,5.0,1.5],["Bosnia and Herzegovina","Europe","SNSD",7.5,7.0,1.5],["Bosnia and Herzegovina","Europe","HDZ BiH",6.5,3.5,3.5],["Bosnia and Herzegovina","Europe","Socijaldemokratska partija BiH",-3.0,-1.5,-2.5],["Bosnia and Herzegovina","Europe","Na\u0161a stranka",-1.5,-3.0,-0.5],["Slovenia","Europe","Slovenska demokratska stranka",6.5,3.5,5.0],["Slovenia","Europe","Socialni demokrati",-3.0,-2.5,-3.0],["Slovenia","Europe","Gibanje Svoboda",0.0,-3.5,0.5],["Slovenia","Europe","Nova Slovenija",4.0,3.0,3.5],["Slovenia","Europe","Levica",-7.5,-4.0,-7.0],["Slovenia","Europe","Slovenska ljudska stranka",3.0,3.0,2.0],["Slovenia","Europe","Stranka Alenke Bratu\u0161ek",1.0,-2.0,1.0],["Andorra","Europe","Dem\u00f2crates per Andorra",3.0,1.0,3.0],["Andorra","Europe","Partit Socialdem\u00f2crata",-2.5,-2.0,-2.5],["Andorra","Europe","Conc\u00f2rdia",1.0,-0.5,1.0],["San Marino","Europe","PDCS",4.0,2.0,3.5],["San Marino","Europe","Libera",-3.0,-2.0,-2.5],["San Marino","Europe","Domani Motus Liberi",1.5,-2.0,1.5],["San Marino","Europe","Rete",-1.5,-3.5,-1.0],["Monaco","Europe","Union Mon\u00e9gasque",4.0,1.5,4.0],["Monaco","Europe","Horizon Monaco",3.0,0.5,3.0],["Monaco","Europe","Pour Monaco",4.0,1.0,4.0],["Monaco","Europe","Monaco en Avant",3.0,1.0,3.0],["Turkey","Asia","AKP",6.5,7.5,3.0],["Turkey","Asia","CHP",-0.5,1.5,-1.5],["Turkey","Asia","MHP",8.5,6.5,3.5],["Turkey","Asia","HDP / DEM",-5.5,-2.0,-5.5],["Turkey","Asia","\u0130Y\u0130 Parti",5.5,2.5,4.0],["Turkey","Asia","DEVA Partisi",2.0,-1.5,2.5],["Turkey","Asia","Gelecek Partisi",3.5,1.0,3.5],["Turkey","Asia","Saadet Partisi",5.5,6.0,2.0],["Turkey","Asia","T\u0130P",-7.5,-2.5,-7.5],["Turkey","Asia","Zafer Partisi",9.5,5.5,3.0],["China","Asia","Chinese Communist Party",1.5,10.0,-1.5],["China","Asia","China Democratic League (satellite)",0.5,9.5,-1.5],["China","Asia","Chinese Peasants and Workers Party (satellite)",-0.5,9.5,-2.0],["Japan","Asia","Jimint\u014d",5.0,2.0,4.5],["Japan","Asia","Rikken Minshut\u014d",-2.5,-2.0,-2.5],["Japan","Asia","Nihon Ky\u014dsant\u014d",-7.5,-0.5,-8.0],["Japan","Asia","Nippon Ishin no Kai",4.0,-2.0,4.5],["Japan","Asia","K\u014dmeit\u014d",2.5,2.5,2.0],["Japan","Asia","Reiwa Shinsengumi",-6.5,-4.5,-6.5],["Japan","Asia","Sanseito",8.0,3.5,3.0],["Japan","Asia","Kokumint\u014d",-1.5,-2.0,-1.5],["Japan","Asia","Shakai Minshut\u014d",-5.0,-3.0,-5.0],["South Korea","Asia","Gungmin ui Him",5.5,1.5,5.0],["South Korea","Asia","Minjudang",-2.5,-2.0,-2.5],["South Korea","Asia","Jeongui Dang",-6.5,-3.5,-6.0],["South Korea","Asia","Rebuilding Korea Party",-6.0,-3.5,-5.5],["South Korea","Asia","New Reform Party",3.5,-1.0,3.5],["South Korea","Asia","Progressive Party",-7.0,-2.5,-7.0],["India","Asia","Bharatiya Janata Party",8.0,5.5,3.5],["India","Asia","Indian National Congress",-0.5,1.5,-1.5],["India","Asia","Aam Aadmi Party",-1.5,-2.0,-1.0],["India","Asia","Communist Party of India (Marxist)",-6.5,2.5,-7.5],["India","Asia","Communist Party of India",-6.0,2.5,-7.0],["India","Asia","Bahujan Samaj Party",1.0,2.5,-3.5],["India","Asia","Samajwadi Party",-0.5,2.0,-2.5],["India","Asia","Trinamool Congress",-1.0,2.0,-2.5],["India","Asia","Dravida Munnetra Kazhagam",-2.5,1.0,-3.5],["India","Asia","Telugu Desam Party",3.0,2.0,3.0],["India","Asia","Shiv Sena (Shinde faction)",7.0,4.0,3.5],["India","Asia","Shiv Sena (UBT)",6.0,2.5,3.0],["India","Asia","Nationalist Congress Party (Sharad Pawar)",-0.5,2.0,-0.5],["India","Asia","Nationalist Congress Party (Ajit Pawar)",2.5,2.5,2.5],["India","Asia","Janata Dal (United)",2.5,3.0,-0.5],["India","Asia","Rashtriya Janata Dal",-2.0,2.0,-3.5],["India","Asia","YSR Congress Party",2.0,3.5,2.5],["India","Asia","Biju Janata Dal",2.0,2.5,1.5],["India","Asia","Janata Dal (Secular)",1.0,2.5,0.5],["India","Asia","All India Majlis-e-Ittehadul Muslimeen",3.5,5.5,-1.5],["India","Asia","AIADMK",3.5,3.0,1.5],["India","Asia","Bharat Rashtra Samithi",3.0,3.5,2.5],["India","Asia","Jana Sena Party",4.5,3.0,3.5],["India","Asia","Indian Union Muslim League",2.5,5.0,-1.0],["India","Asia","Kerala Congress (M)",2.0,3.5,-0.5],["India","Asia","Jammu Kashmir National Conference",-1.5,2.0,-2.0],["India","Asia","J&K People's Democratic Party",-0.5,3.0,-1.0],["India","Asia","Jharkhand Mukti Morcha",-1.5,2.5,-2.5],["India","Asia","Lok Jan Shakti Party (Ram Vilas)",5.0,3.0,3.0],["India","Asia","Viduthalai Chiruthaigal Katchi",-4.5,0.5,-5.5],["India","Asia","CPI (ML) Liberation",-7.5,0.5,-8.5],["India","Asia","Rashtriya Lok Dal",0.5,2.5,-0.5],["India","Asia","Asom Gana Parishad",4.0,3.5,2.5],["India","Asia","Shiromani Akali Dal",4.5,4.5,2.0],["India","Asia","Pattali Makkal Katchi",2.5,3.5,1.5],["India","Asia","All India Anna Dravida Munnetra Kazhagam",3.5,3.0,2.0],["India","Asia","All India Forward Bloc",-6.0,2.0,-7.0],["India","Asia","Nationalist Democratic Progressive Party",3.5,3.5,3.0],["India","Asia","Sikkim Krantikari Morcha",2.5,3.0,2.0],["India","Asia","Zoram People's Movement",2.0,2.0,1.5],["India","Asia","Mizo National Front",4.5,4.0,2.5],["Pakistan","Asia","Pakistan Tehreek-e-Insaf",4.5,2.5,3.5],["Pakistan","Asia","PML-N",5.0,3.5,4.0],["Pakistan","Asia","PPP",1.0,2.5,-1.5],["Pakistan","Asia","MQM-P",3.5,3.5,2.5],["Pakistan","Asia","JUI-F",7.0,7.5,-0.5],["Pakistan","Asia","PML-Q",5.0,3.5,3.5],["Pakistan","Asia","Jamaat-e-Islami",7.5,8.0,-0.5],["Pakistan","Asia","Awami National Party",-1.5,2.5,-2.5],["Pakistan","Asia","Balochistan National Party",-2.5,2.0,-3.5],["Pakistan","Asia","Pashtoonkhwa Milli Awami Party",-2.0,2.0,-3.0],["Bangladesh","Asia","Awami League",2.0,5.5,1.0],["Bangladesh","Asia","Bangladesh Nationalist Party",5.0,4.0,4.0],["Bangladesh","Asia","Jamaat-e-Islami Bangladesh",7.5,8.0,-1.0],["Bangladesh","Asia","Jatiya Party (Ershad)",3.0,4.0,2.5],["Bangladesh","Asia","National Citizen Party",0.5,-0.5,0.0],["Bangladesh","Asia","Gono Odhikar Parishad",-2.5,0.5,-2.5],["Indonesia","Asia","PDI-P",-1.5,2.5,-2.0],["Indonesia","Asia","Golkar",3.5,3.5,3.0],["Indonesia","Asia","Gerindra",5.0,3.5,4.5],["Indonesia","Asia","PKS",6.0,7.0,-0.5],["Indonesia","Asia","Nasdem",2.0,2.0,1.5],["Indonesia","Asia","PKB",3.0,4.5,1.5],["Indonesia","Asia","Demokrat",4.0,2.5,3.5],["Indonesia","Asia","PPP",5.0,5.5,-0.5],["Indonesia","Asia","Hanura",3.0,2.5,2.0],["Indonesia","Asia","PAN",4.5,4.5,1.5],["Indonesia","Asia","Gelora",6.0,5.5,2.0],["Indonesia","Asia","Perindo",3.0,3.0,2.5],["Philippines","Asia","PDP-Laban",4.5,4.0,3.5],["Philippines","Asia","Liberal Party",2.0,-2.0,2.0],["Philippines","Asia","Lakas-CMD",4.5,3.0,4.0],["Philippines","Asia","NPC",3.5,3.5,3.0],["Philippines","Asia","Aksyon Demokratiko",2.0,-2.5,1.5],["Philippines","Asia","Partido Federal ng Pilipinas",5.0,4.0,4.5],["Philippines","Asia","Makabayan",-7.5,-1.0,-7.5],["Thailand","Asia","Pheu Thai",1.0,3.5,-1.0],["Thailand","Asia","Move Forward / People's Party",-4.5,-2.5,-4.0],["Thailand","Asia","Democrat",4.5,2.5,4.0],["Thailand","Asia","Palang Pracharath",5.0,5.5,3.5],["Thailand","Asia","United Thai Nation",6.5,5.0,4.5],["Thailand","Asia","Thai Sang Thai",-1.5,2.0,-2.0],["Thailand","Asia","Bhumjaithai",3.5,3.5,3.0],["Vietnam","Asia","Communist Party of Vietnam",-1.5,9.5,-2.5],["Malaysia","Asia","UMNO",5.0,4.0,3.5],["Malaysia","Asia","PKR",-2.0,-1.5,-1.5],["Malaysia","Asia","DAP",-3.5,-2.0,-3.5],["Malaysia","Asia","PAS",7.0,8.5,-1.0],["Malaysia","Asia","Bersatu",4.5,3.5,3.0],["Malaysia","Asia","Gerakan",3.5,2.5,3.0],["Malaysia","Asia","MCA",4.0,3.5,3.5],["Malaysia","Asia","GPS (Gabungan Parti Sarawak)",4.0,4.0,3.0],["Malaysia","Asia","GRS (Gabungan Rakyat Sabah)",4.5,3.5,3.5],["Malaysia","Asia","Amanah",-0.5,3.0,-2.0],["Singapore","Asia","People's Action Party",4.5,6.5,4.0],["Singapore","Asia","Workers' Party",-2.5,-1.5,-2.5],["Singapore","Asia","Progress Singapore Party",1.5,-1.5,1.5],["Singapore","Asia","Singapore Democratic Party",-2.0,-4.0,-1.5],["Singapore","Asia","Red Dot United",-3.5,-3.0,-3.5],["Myanmar","Asia","National League for Democracy",-2.5,-1.5,-2.5],["Myanmar","Asia","USDP / Tatmadaw",5.0,9.5,1.0],["Myanmar","Asia","Arakan National Party",2.5,3.5,1.5],["Myanmar","Asia","Shan Nationalities League for Democracy",-1.0,2.0,-1.5],["Sri Lanka","Asia","SLPP",4.5,4.5,3.5],["Sri Lanka","Asia","SJB",-0.5,-1.5,-1.0],["Sri Lanka","Asia","JVP / NPP",-6.5,0.5,-7.0],["Sri Lanka","Asia","UNP",4.0,1.0,4.0],["Sri Lanka","Asia","SLFP",2.0,3.5,1.0],["Sri Lanka","Asia","ITAK (Tamil National Alliance)",-2.5,1.5,-2.5],["Nepal","Asia","CPN-UML",-3.5,3.5,-5.5],["Nepal","Asia","Nepali Congress",1.0,-1.0,0.5],["Nepal","Asia","CPN (Maoist Centre)",-6.5,2.0,-7.5],["Nepal","Asia","Rastriya Swatantra Party",3.5,-2.5,3.5],["Nepal","Asia","Rastriya Prajatantra Party",6.0,4.5,3.5],["Nepal","Asia","Janmat Party",-2.5,2.0,-3.5],["Taiwan","Asia","Kuomintang",5.5,1.5,4.5],["Taiwan","Asia","Democratic Progressive Party",-2.0,-1.5,-2.0],["Taiwan","Asia","Taiwan People's Party",1.0,-2.5,1.0],["Taiwan","Asia","New Power Party",-5.5,-3.5,-5.0],["Taiwan","Asia","Taiwan Statebuilding Party",-3.5,-2.0,-3.5],["Israel","Asia","Likud",6.5,3.5,6.0],["Israel","Asia","Yesh Atid",2.0,-1.5,2.0],["Israel","Asia","Labor",-2.5,-2.0,-2.5],["Israel","Asia","Otzma Yehudit",9.5,6.5,4.0],["Israel","Asia","Hadash",-6.5,-2.0,-7.0],["Israel","Asia","Shas",7.5,5.5,1.5],["Israel","Asia","UTJ",7.0,7.5,1.0],["Israel","Asia","Yisrael Beiteinu",6.0,1.5,5.5],["Israel","Asia","Ra'am",6.5,7.0,-1.5],["Israel","Asia","Meretz",-6.5,-5.0,-6.0],["Israel","Asia","National Unity",5.5,1.0,4.5],["Israel","Asia","Jewish Home",8.5,5.0,4.0],["Iran","Asia","Reformists",-2.5,4.0,-2.5],["Iran","Asia","Principalists",7.0,9.5,1.0],["Iran","Asia","Moderation and Development Party",2.0,6.5,1.5],["Iran","Asia","IRGC (political arm)",7.5,10.0,-1.0],["Kuwait","Asia","Hadas (Muslim Brotherhood bloc)",5.5,6.5,-1.0],["Kuwait","Asia","Popular Action Bloc (Arab nationalist)",2.0,3.0,-1.5],["Kuwait","Asia","Islamic Salafi Alliance",7.5,6.5,-1.5],["Kuwait","Asia","National Democratic Alliance",-0.5,1.0,-1.0],["Bahrain","Asia","Al-Wefaq (banned opposition)",-1.5,3.5,-1.5],["Bahrain","Asia","Al-Asalah (Salafi)",7.5,7.5,-1.5],["Bahrain","Asia","National Unity Gathering",4.0,5.5,2.0],["Yemen","Asia","General People's Congress",4.0,5.5,1.5],["Yemen","Asia","Islah Party",6.5,7.5,-1.0],["Yemen","Asia","Ansar Allah (Houthis)",3.0,8.5,-3.0],["Yemen","Asia","Yemeni Socialist Party",-4.5,2.5,-5.0],["Yemen","Asia","Southern Transitional Council",5.0,5.0,2.5],["Jordan","Asia","Islamic Action Front",6.5,7.0,-1.0],["Jordan","Asia","National Current Party",3.5,4.0,2.0],["Jordan","Asia","Mithaq Party",3.0,4.0,2.5],["Lebanon","Asia","Hezbollah",3.5,7.5,-3.0],["Lebanon","Asia","Lebanese Forces",5.5,2.0,5.0],["Lebanon","Asia","Amal",2.5,4.5,-1.0],["Lebanon","Asia","Free Patriotic Movement",3.5,4.5,2.5],["Lebanon","Asia","Progressive Socialist Party",-2.0,1.5,-3.0],["Lebanon","Asia","Kataeb",5.5,2.5,4.5],["Lebanon","Asia","Future Movement",4.0,2.0,4.0],["Syria","Asia","Ba'ath Party (Assad era)",3.5,9.5,-3.0],["Syria","Asia","Syrian Democratic Forces",-5.0,1.0,-5.0],["Syria","Asia","Hayat Tahrir al-Sham",7.0,8.0,-2.0],["Iraq","Asia","Sadr Movement",-0.5,5.5,-2.5],["Iraq","Asia","State of Law Coalition",2.5,5.5,-1.5],["Iraq","Asia","KDP",4.5,3.0,3.5],["Iraq","Asia","PUK",-1.5,2.5,-2.0],["Iraq","Asia","Fatah Alliance (PMF)",3.0,6.5,-2.5],["Iraq","Asia","Taqadum",3.0,3.0,2.5],["Afghanistan","Asia","Taliban",10.0,10.0,-2.5],["Afghanistan","Asia","National Islamic Front of Afghanistan",5.5,6.5,-1.0],["Kazakhstan","Asia","Amanat (ruling)",5.5,8.5,2.0],["Kazakhstan","Asia","ADAL",3.5,5.0,2.5],["Kazakhstan","Asia","Auyl",2.5,4.5,0.5],["Kazakhstan","Asia","Ak Zhol",4.0,6.0,3.5],["Uzbekistan","Asia","Liberal Democratic Party",4.5,7.5,3.5],["Uzbekistan","Asia","People's Democratic Party",3.0,7.0,-1.0],["Uzbekistan","Asia","Adolat (Justice)",3.5,6.5,1.5],["Kyrgyzstan","Asia","Ata-Jurt Kyrgyzstan",6.5,4.0,3.0],["Kyrgyzstan","Asia","Ak-Jol",4.5,3.5,3.5],["Kyrgyzstan","Asia","Mekenim Kyrgyzstan",5.0,4.5,3.5],["Kyrgyzstan","Asia","Butun Kyrgyzstan",3.5,3.0,2.5],["Kyrgyzstan","Asia","Social Democrats",-1.5,1.5,-2.0],["Tajikistan","Asia","People's Democratic Party",4.0,9.0,-1.0],["Tajikistan","Asia","Communist Party of Tajikistan",-1.5,5.5,-4.0],["Tajikistan","Asia","Agrarian Party",2.5,4.0,-0.5],["Tajikistan","Asia","Islamic Renaissance Party (banned)",7.0,8.0,-1.5],["Turkmenistan","Asia","Democratic Party of Turkmenistan",4.5,10.0,-0.5],["Azerbaijan","Asia","Yeni Az\u0259rbaycan Partiyas\u0131",5.5,9.0,1.5],["Azerbaijan","Asia","M\u00fcsavat",2.5,2.0,2.0],["Azerbaijan","Asia","Popular Front of Azerbaijan",3.0,3.5,1.5],["Georgia","Asia","Georgian Dream",4.5,6.0,2.5],["Georgia","Asia","United National Movement",2.5,-1.5,2.0],["Georgia","Asia","Lelo",-0.5,-3.5,0.5],["Georgia","Asia","Strong Georgia",3.0,0.5,2.5],["Georgia","Asia","For Georgia",2.0,-1.0,1.5],["Armenia","Asia","Civil Contract",0.5,-1.5,0.0],["Armenia","Asia","Hayastan Alliance",4.5,2.5,3.0],["Armenia","Asia","I Have Honour Alliance",5.5,3.5,3.5],["North Korea","Asia","Korean Workers' Party",2.5,10.0,-3.0],["North Korea","Asia","Korean Social Democratic Party (puppet)",1.5,10.0,-2.0],["North Korea","Asia","Chondogyo Party (puppet)",0.5,10.0,-2.0],["Laos","Asia","Lao People's Revolutionary Party",-1.5,10.0,-3.0],["Cambodia","Asia","Cambodian People's Party",4.0,9.5,1.5],["Cambodia","Asia","Candlelight Party",-1.5,-1.0,-1.5],["Cambodia","Asia","FUNCINPEC",4.5,5.0,2.0],["Mongolia","Asia","Mongolian People's Party",-0.5,2.0,-1.5],["Mongolia","Asia","Democratic Party",3.5,0.5,3.0],["Mongolia","Asia","HUN",2.0,1.5,1.5],["Timor-Leste","Asia","FRETILIN",-4.0,2.0,-4.0],["Timor-Leste","Asia","CNRT",3.5,2.5,2.0],["Timor-Leste","Asia","Democratic Party (Timor)",-1.0,-1.5,-1.0],["Timor-Leste","Asia","Khunto",2.5,2.0,1.5],["Timor-Leste","Asia","Frenti-Mudansa",2.0,2.5,1.0],["Bhutan","Asia","Bhutan Tendrel Party",3.5,3.0,2.0],["Bhutan","Asia","People's Democratic Party",-1.5,2.0,-1.5],["Bhutan","Asia","Druk Phuensum Tshogpa",4.5,2.5,3.5],["Bhutan","Asia","Druk Nyamrup Tshogpa",2.0,2.5,1.0],["Maldives","Asia","Maldivian Democratic Party",-1.5,-1.5,-2.0],["Maldives","Asia","Progressive Party of Maldives",4.5,3.5,4.0],["Maldives","Asia","People's National Congress",5.0,4.0,3.5],["Maldives","Asia","Jumhooree Party",2.5,2.0,2.0],["Maldives","Asia","Adhaalath Party",6.5,6.5,-1.0],["South Africa","Africa","African National Congress",-1.5,3.5,-2.5],["South Africa","Africa","Democratic Alliance",3.5,-1.5,4.5],["South Africa","Africa","Economic Freedom Fighters",-6.5,1.0,-7.5],["South Africa","Africa","uMkhonto we Sizwe",-3.0,4.5,-4.0],["South Africa","Africa","Inkatha Freedom Party",3.5,3.5,3.0],["South Africa","Africa","Pan Africanist Congress",-5.0,1.0,-6.0],["South Africa","Africa","African Christian Democratic Party",5.5,5.0,4.5],["South Africa","Africa","Freedom Front Plus",6.5,1.5,6.5],["South Africa","Africa","GOOD party",1.0,-1.5,1.0],["South Africa","Africa","Al-Jama-ah",5.0,6.0,-1.5],["South Africa","Africa","Build One South Africa",1.5,0.0,1.5],["Nigeria","Africa","All Progressives Congress",4.5,4.0,3.5],["Nigeria","Africa","Peoples Democratic Party",2.5,3.5,1.5],["Nigeria","Africa","Labour Party",-1.0,0.5,-1.5],["Nigeria","Africa","All Progressives Grand Alliance",3.0,3.0,2.0],["Nigeria","Africa","New Nigeria People's Party",2.0,2.5,1.0],["Nigeria","Africa","Social Democratic Party (Nigeria)",-2.0,2.0,-2.5],["Kenya","Africa","United Democratic Alliance",4.5,3.5,4.0],["Kenya","Africa","Azimio / ODM",-2.0,2.5,-2.0],["Kenya","Africa","Wiper",-1.5,1.5,-1.5],["Kenya","Africa","Jubilee Party",3.5,3.5,3.5],["Kenya","Africa","Amani National Congress",3.0,2.5,2.5],["Ethiopia","Africa","Prosperity Party",3.5,7.0,2.0],["Ethiopia","Africa","TPLF",-0.5,4.5,-1.0],["Ethiopia","Africa","OLF",-2.5,2.0,-3.0],["Ethiopia","Africa","EZEMA",2.0,2.5,1.5],["Egypt","Africa","Future of Homeland",4.5,9.0,2.5],["Egypt","Africa","Nour Party",8.0,8.5,-1.5],["Egypt","Africa","Wafd Party",4.0,5.0,3.5],["Egypt","Africa","Al-Tagammu",-5.5,3.5,-6.0],["Egypt","Africa","Egyptian Social Democratic Party",-1.5,1.5,-2.0],["Morocco","Africa","Rassemblement National des Ind\u00e9pendants",4.5,3.5,3.5],["Morocco","Africa","Istiqlal",4.0,4.0,2.5],["Morocco","Africa","PJD",6.5,6.5,-1.0],["Morocco","Africa","USFP",-1.5,2.0,-2.0],["Morocco","Africa","Authenticit\u00e9 et Modernit\u00e9",3.5,3.5,3.0],["Morocco","Africa","Parti du Progr\u00e8s et du Socialisme",-3.5,2.5,-4.0],["Tunisia","Africa","Ennahda",6.0,5.5,-0.5],["Tunisia","Africa","Nidaa Tounes",4.0,3.0,3.0],["Tunisia","Africa","Attayar",-2.5,0.5,-2.5],["Tunisia","Africa","Mouvement du Peuple",-3.5,2.5,-4.0],["Tunisia","Africa","Aich Tounsi",2.5,2.0,2.0],["Ghana","Africa","New Patriotic Party",5.0,2.5,4.5],["Ghana","Africa","National Democratic Congress",-0.5,2.5,-1.5],["Ghana","Africa","People's National Party",-2.5,2.0,-2.5],["Senegal","Africa","Alliance pour la R\u00e9publique",3.0,4.0,2.5],["Senegal","Africa","Pastef",-3.5,1.5,-3.5],["Senegal","Africa","PDS",4.5,3.5,3.5],["Senegal","Africa","Taxawu Senegaal",-1.5,2.5,-1.5],["Sierra Leone","Africa","Sierra Leone People's Party",-2.0,2.0,-2.0],["Sierra Leone","Africa","All People's Congress",3.5,3.0,2.5],["Sierra Leone","Africa","National Grand Coalition",1.5,2.0,1.5],["Liberia","Africa","Coalition for Democratic Change",4.0,3.0,3.5],["Liberia","Africa","Unity Party",-1.0,1.5,-1.0],["Liberia","Africa","Alternative National Congress",2.0,1.0,1.5],["Liberia","Africa","Movement for Democracy and Reconstruction",2.5,2.5,2.0],["Togo","Africa","Union pour la R\u00e9publique",5.0,7.5,2.5],["Togo","Africa","Alliance Nationale pour le Changement",-2.5,1.5,-2.5],["Togo","Africa","Union des Forces du Changement",-3.0,1.0,-3.0],["Togo","Africa","Nouvel Engagement Togolais",1.0,2.0,0.5],["Benin","Africa","Bloc R\u00e9publicain",4.0,4.5,3.5],["Benin","Africa","Forces Cauris pour un B\u00e9nin \u00c9mergent",-1.5,3.5,-1.5],["Benin","Africa","Union Progressiste le Renouveau",2.5,4.0,2.0],["Guinea","Africa","CNRD / Junta",5.0,9.5,1.0],["Guinea","Africa","Rassemblement du Peuple de Guin\u00e9e",-1.5,4.5,-1.5],["Guinea","Africa","UFDG",2.5,2.5,2.0],["Guinea-Bissau","Africa","PAIGC",-3.0,2.5,-2.5],["Guinea-Bissau","Africa","MADEM-G15",3.0,3.0,2.5],["Guinea-Bissau","Africa","PRS",3.5,3.5,3.0],["Guinea-Bissau","Africa","APU-PDGB",-3.5,2.0,-3.0],["Tanzania","Africa","Chama Cha Mapinduzi",2.5,6.0,1.5],["Tanzania","Africa","CHADEMA",-1.5,0.5,-1.5],["Tanzania","Africa","Civic United Front",-2.5,0.5,-2.5],["Uganda","Africa","National Resistance Movement",3.5,7.5,2.5],["Uganda","Africa","Forum for Democratic Change",-1.5,0.0,-1.5],["Uganda","Africa","Uganda People's Congress",-2.5,2.0,-2.5],["Uganda","Africa","Democratic Party (Uganda)",2.0,1.0,1.5],["Uganda","Africa","National Unity Platform",-2.5,-1.0,-2.5],["Rwanda","Africa","Rwandan Patriotic Front",3.5,9.5,2.0],["Rwanda","Africa","Social Democratic Party (Rwanda)",-1.5,5.0,-1.5],["Rwanda","Africa","Liberal Party (Rwanda)",2.0,4.5,1.5],["Cameroon","Africa","RDPC",4.5,7.5,1.5],["Cameroon","Africa","SDF",-2.5,0.5,-2.5],["Cameroon","Africa","UNDP",2.0,3.0,1.5],["Ivory Coast","Africa","RHDP",4.5,4.5,3.5],["Ivory Coast","Africa","FPI",-2.5,3.0,-2.5],["Ivory Coast","Africa","PDCI",4.0,4.0,3.0],["Central African Republic","Africa","Mouvement C\u0153urs Unis",3.5,5.5,1.5],["Central African Republic","Africa","MLPC",1.5,3.0,1.0],["Central African Republic","Africa","KNK",3.0,4.0,1.5],["Gabon","Africa","Comit\u00e9 pour la Transition et la Restauration des Institutions",4.5,9.5,1.5],["Gabon","Africa","Parti D\u00e9mocratique Gabonais (ousted ruling)",4.5,7.5,2.0],["Gabon","Africa","Union Nationale",-1.5,2.5,-1.5],["Republic of Congo","Africa","Parti Congolais du Travail",2.5,7.5,-1.5],["Republic of Congo","Africa","UPADS",-2.0,1.5,-2.0],["Republic of Congo","Africa","Club 2002",3.5,5.5,2.0],["Equatorial Guinea","Africa","Partido Democr\u00e1tico de Guinea Ecuatorial",5.0,9.5,1.0],["Equatorial Guinea","Africa","Convergencia para la Democracia Social",-3.0,1.0,-3.0],["Democratic Republic of Congo","Africa","UDPS",1.5,3.0,0.5],["Democratic Republic of Congo","Africa","MLC",4.0,3.5,3.0],["Democratic Republic of Congo","Africa","Ensemble pour la R\u00e9publique",-1.5,1.5,-1.5],["Democratic Republic of Congo","Africa","Union Sacr\u00e9e",2.0,3.5,1.5],["Burundi","Africa","CNDD-FDD",3.0,8.0,-1.5],["Burundi","Africa","Forces for National Liberation",-2.5,4.0,-2.5],["Burundi","Africa","UPRONA",3.5,5.5,2.0],["Mali","Africa","CNSP / Junta (Go\u00efta)",5.5,9.5,0.5],["Mali","Africa","RPM",2.0,4.5,1.5],["Mali","Africa","URD",1.5,3.5,1.0],["Niger","Africa","CNSP (Junta)",5.5,9.5,0.5],["Niger","Africa","PNDS-Tarayya",2.0,4.0,1.5],["Niger","Africa","MNSD-Nassara",3.5,4.5,2.5],["Burkina Faso","Africa","MPSR / Junta (Traor\u00e9)",5.0,9.5,0.5],["Burkina Faso","Africa","CDP",4.5,5.5,2.5],["Burkina Faso","Africa","Mouvement du Peuple pour le Progr\u00e8s",1.5,3.5,1.0],["Chad","Africa","Mouvement Patriotique du Salut",5.0,8.5,1.5],["Chad","Africa","RNDT",3.5,5.0,2.0],["Chad","Africa","FAR (Transitional)",4.0,9.0,1.0],["Sudan","Africa","Sudanese Armed Forces",5.0,9.5,1.5],["Sudan","Africa","Rapid Support Forces",5.5,9.5,2.0],["Sudan","Africa","Forces of Freedom and Change",-2.5,0.5,-2.5],["Sudan","Africa","National Umma Party",2.0,3.5,1.0],["Somalia","Africa","Himilo Qaran",0.5,3.5,0.5],["Somalia","Africa","Peace and Development Party",2.0,4.0,1.5],["Somalia","Africa","Wadajir",-1.5,2.5,-1.5],["Somalia","Africa","Justice and Reconciliation Party",2.5,4.5,1.5],["South Sudan","Africa","SPLM",2.0,7.0,0.5],["South Sudan","Africa","SPLM-IO",-1.0,5.5,-1.5],["South Sudan","Africa","National Salvation Front",-2.5,4.0,-2.5],["Djibouti","Africa","Union pour la Majorit\u00e9 Pr\u00e9sidentielle",4.5,8.0,2.5],["Djibouti","Africa","Union Nationale pour la D\u00e9mocratie",-2.0,1.5,-2.0],["Eritrea","Africa","People's Front for Democracy and Justice",5.0,10.0,-1.0],["Zimbabwe","Africa","ZANU-PF",4.5,8.0,-1.5],["Zimbabwe","Africa","Citizens Coalition for Change",-1.5,-0.5,-1.5],["Zimbabwe","Africa","MDC-T",0.5,0.5,-0.5],["Mozambique","Africa","Frelimo",1.5,7.0,-1.0],["Mozambique","Africa","Renamo",5.0,3.0,4.0],["Mozambique","Africa","MDM",-1.5,2.0,-1.5],["Angola","Africa","MPLA",2.0,7.5,-1.0],["Angola","Africa","UNITA",5.0,2.5,4.0],["Angola","Africa","FNLA",4.5,3.5,3.5],["Angola","Africa","PRS",3.5,3.5,3.0],["Zambia","Africa","UPND",-0.5,1.0,-0.5],["Zambia","Africa","PF",3.0,4.0,2.5],["Zambia","Africa","MMD",3.0,2.5,2.5],["Malawi","Africa","Malawi Congress Party",-1.5,2.0,-2.0],["Malawi","Africa","United Democratic Front",2.5,2.5,2.0],["Malawi","Africa","Democratic Progressive Party",4.0,3.5,3.5],["Malawi","Africa","UTM Party",0.5,1.5,0.5],["Namibia","Africa","SWAPO",1.5,5.5,-1.0],["Namibia","Africa","Independent Patriots for Change",2.5,-1.0,2.0],["Namibia","Africa","Popular Democratic Movement",4.0,1.5,3.5],["Namibia","Africa","Landless People's Movement",-4.5,0.5,-5.0],["Namibia","Africa","All People's Party (Namibia)",1.5,1.5,1.0],["Botswana","Africa","Botswana Democratic Party",4.5,3.5,4.0],["Botswana","Africa","Umbrella for Democratic Change",0.5,0.5,0.5],["Botswana","Africa","Alliance of Patriots",-2.0,1.5,-2.0],["Botswana","Africa","Botswana National Front",-3.5,1.0,-3.5],["Lesotho","Africa","All Basotho Convention",1.5,2.5,1.0],["Lesotho","Africa","Democratic Congress",4.0,3.5,3.5],["Lesotho","Africa","Alliance of Democrats",2.5,1.5,2.0],["Lesotho","Africa","Basotho National Party",5.0,3.5,3.5],["Lesotho","Africa","Movement for Economic Change",1.0,1.5,0.5],["Libya","Africa","Government of National Unity",3.0,5.5,2.0],["Libya","Africa","LNA / Haftar",7.0,8.0,2.5],["Libya","Africa","National Forces Alliance",3.5,3.5,3.0],["Algeria","Africa","FLN",5.0,7.5,-0.5],["Algeria","Africa","RND",5.0,7.0,1.0],["Algeria","Africa","MSP",7.0,7.0,-1.5],["Algeria","Africa","FFS",-3.5,2.0,-4.0],["Algeria","Africa","RCD",-1.5,-1.5,-2.0],["Mauritius","Africa","Militant Socialist Movement",4.0,2.0,3.5],["Mauritius","Africa","Labour Party (Mauritius)",-2.5,-0.5,-3.0],["Mauritius","Africa","Mouvement Militant Mauricien",-1.5,-1.5,-1.5],["Mauritius","Africa","Parti Mauricien Social D\u00e9mocrate",3.0,1.0,2.5],["Mauritius","Africa","Muvman Liberater",3.5,-1.5,3.0],["Cape Verde","Africa","Movimento para a Democracia",3.5,1.0,3.5],["Cape Verde","Africa","PAICV",-2.5,1.5,-2.5],["Cape Verde","Africa","UCID",5.0,3.5,4.5],["Madagascar","Africa","IRD (Rajoelina)",3.5,5.0,2.5],["Madagascar","Africa","Tiako i Madagasikara",2.0,3.5,1.5],["Madagascar","Africa","Hery Vaovao",1.5,2.5,1.0],["Comoros","Africa","Convention pour le Renouveau des Comores",4.0,5.5,1.5],["Comoros","Africa","Juwa Party",2.5,4.0,1.5],["Comoros","Africa","Orange Party",3.0,4.5,2.0],["Seychelles","Africa","Linyon Demokratik Seselwa",-2.0,-1.0,-2.0],["Seychelles","Africa","Mouvement Seychellois pour la D\u00e9mocratie",-2.5,-1.5,-2.5],["Seychelles","Africa","United Seychelles",2.0,3.0,1.5],["S\u00e3o Tom\u00e9 and Pr\u00edncipe","Africa","MLSTP-PSD",-2.5,2.0,-2.5],["S\u00e3o Tom\u00e9 and Pr\u00edncipe","Africa","A\u00e7\u00e3o Democr\u00e1tica Independente",3.5,2.0,3.0],["S\u00e3o Tom\u00e9 and Pr\u00edncipe","Africa","Partido de Converg\u00eancia Democr\u00e1tica",2.0,1.5,2.0],["United States","North America","Democratic Party",-3.0,-3.0,-2.5],["United States","North America","Republican Party",7.0,2.5,6.5],["United States","North America","Libertarian Party",2.5,-9.0,6.5],["United States","North America","Green Party",-7.0,-5.5,-6.0],["United States","North America","Constitution Party",7.5,-1.0,7.5],["United States","North America","Working Families Party",-6.0,-3.5,-5.5],["United States","North America","Democratic Socialists of America",-8.5,-2.5,-8.0],["United States","North America","Reform Party",3.5,-0.5,4.0],["United States","North America","Peace and Freedom Party",-8.5,-5.0,-8.0],["United States","North America","American Solidarity Party",4.0,4.5,3.0],["United States","North America","Alliance Party",2.5,-2.0,2.0],["United States","North America","Progressive Party (Vermont)",-6.5,-4.5,-6.0],["Canada","North America","Liberal Party of Canada",-1.5,-2.5,-1.0],["Canada","North America","Conservative Party",5.5,2.0,5.0],["Canada","North America","New Democratic Party",-5.5,-3.5,-5.5],["Canada","North America","Bloc Qu\u00e9b\u00e9cois",0.5,0.5,-2.0],["Canada","North America","Green Party of Canada",-6.5,-6.0,-5.5],["Canada","North America","People's Party of Canada",6.5,-2.5,6.5],["Canada","North America","Parti Qu\u00e9b\u00e9cois",1.5,0.5,-3.5],["Canada","North America","Coalition Avenir Qu\u00e9bec",5.5,2.5,3.0],["Mexico","North America","Morena",-3.5,3.0,-4.0],["Mexico","North America","PAN",5.5,2.0,5.0],["Mexico","North America","PRI",3.0,3.5,1.0],["Mexico","North America","PRD",-4.0,-1.5,-4.0],["Mexico","North America","Movimiento Ciudadano",1.0,-2.0,1.5],["Mexico","North America","PT",-5.0,2.0,-5.5],["Cuba","North America","Partido Comunista de Cuba",-2.5,10.0,-3.0],["Haiti","North America","Fanmi Lavalas",-3.5,2.0,-3.5],["Haiti","North America","PHTK",4.0,4.0,3.5],["Haiti","North America","Lapeh",2.0,1.5,1.5],["Dominican Republic","North America","Partido Revolucionario Moderno",2.5,2.0,2.0],["Dominican Republic","North America","Partido de la Liberaci\u00f3n Dominicana",-1.5,2.5,-1.5],["Dominican Republic","North America","Partido Reformista Social Cristiano",5.0,3.0,4.5],["Dominican Republic","North America","Fuerza del Pueblo",-3.5,2.0,-3.5],["Jamaica","North America","People's National Party",-3.5,-0.5,-3.5],["Jamaica","North America","Jamaica Labour Party",4.0,1.5,3.5],["Trinidad and Tobago","North America","People's National Movement",3.5,2.0,3.0],["Trinidad and Tobago","North America","United National Congress",-2.0,1.5,-2.0],["Trinidad and Tobago","North America","Congress of the People",-0.5,-0.5,-1.0],["Barbados","North America","Barbados Labour Party",-2.5,1.0,-2.5],["Barbados","North America","Democratic Labour Party",3.5,2.0,3.0],["The Bahamas","North America","Progressive Liberal Party",-1.5,1.5,-1.5],["The Bahamas","North America","Free National Movement",4.0,2.0,3.5],["The Bahamas","North America","Democratic National Alliance",1.5,0.5,1.5],["Grenada","North America","National Democratic Congress",-2.5,0.5,-2.5],["Grenada","North America","New National Party",4.0,2.0,3.5],["Saint Lucia","North America","Saint Lucia Labour Party",-2.5,0.5,-2.5],["Saint Lucia","North America","United Workers Party",4.0,1.5,3.5],["Saint Vincent and the Grenadines","North America","Unity Labour Party",-2.5,1.0,-2.5],["Saint Vincent and the Grenadines","North America","New Democratic Party",4.0,2.0,3.5],["Antigua and Barbuda","North America","Antigua Labour Party",-2.0,2.0,-2.0],["Antigua and Barbuda","North America","United Progressive Party",2.5,1.5,2.0],["Antigua and Barbuda","North America","Barbuda People's Movement",1.0,2.0,0.5],["Saint Kitts and Nevis","North America","Saint Kitts and Nevis Labour Party",-2.0,1.5,-2.0],["Saint Kitts and Nevis","North America","People's Action Movement",4.0,1.5,3.5],["Saint Kitts and Nevis","North America","Concerned Citizens Movement",2.5,2.0,2.0],["Dominica","North America","Dominica Labour Party",-1.5,2.5,-1.5],["Dominica","North America","United Workers Party (Dominica)",3.5,2.0,3.0],["Costa Rica","North America","PLN",-1.0,-1.5,-1.0],["Costa Rica","North America","PUSC",4.5,1.5,4.0],["Costa Rica","North America","Partido Liberal Progresista",2.0,-2.5,2.0],["Costa Rica","North America","Frente Amplio",-7.0,-3.0,-6.5],["Costa Rica","North America","Partido Liberaci\u00f3n Nacional",-1.5,-1.0,-1.5],["Guatemala","North America","Semilla",-2.5,-1.5,-2.5],["Guatemala","North America","UNE",4.0,3.5,3.0],["Guatemala","North America","VAMOS",5.0,3.0,4.0],["Guatemala","North America","Valor",6.5,3.5,5.5],["Guatemala","North America","Cabal",5.5,3.0,4.5],["Honduras","North America","LIBRE",-4.5,2.5,-4.5],["Honduras","North America","PNH",5.5,3.5,5.0],["Honduras","North America","PL",2.5,3.0,2.0],["El Salvador","North America","Nuevas Ideas",5.0,5.0,4.5],["El Salvador","North America","FMLN",-5.5,1.5,-5.5],["El Salvador","North America","ARENA",7.0,3.0,6.5],["El Salvador","North America","GANA",4.5,3.5,4.0],["Nicaragua","North America","FSLN",-3.5,9.0,-4.0],["Nicaragua","North America","Partido Conservador",5.0,3.0,4.0],["Nicaragua","North America","PLC",4.5,3.5,3.5],["Panama","North America","Partido Revolucionario Democr\u00e1tico",-1.5,3.0,-1.5],["Panama","North America","Realizando Metas",4.5,3.0,4.0],["Panama","North America","Partido Paname\u00f1ista",4.0,2.5,3.5],["Panama","North America","Cambio Democr\u00e1tico",5.0,3.0,4.5],["Belize","North America","People's United Party",-3.0,2.0,-3.0],["Belize","North America","United Democratic Party",4.0,2.0,3.5],["Belize","North America","Vision Inspired by the People",1.5,1.0,1.5],["Venezuela","South America","PSUV",-3.5,9.0,-4.5],["Venezuela","South America","MUD / PUD",3.5,-1.0,3.0],["Venezuela","South America","Voluntad Popular",3.5,-2.0,3.5],["Venezuela","South America","Avanzada Progresista",2.0,3.0,1.5],["Brazil","South America","PT",-4.5,2.0,-5.5],["Brazil","South America","PL",7.0,3.5,5.5],["Brazil","South America","PSDB",2.0,-0.5,2.0],["Brazil","South America","MDB",2.0,1.5,1.5],["Brazil","South America","Novo",4.5,-3.0,6.5],["Brazil","South America","PSOL",-7.5,-2.0,-7.5],["Brazil","South America","PSD",3.5,1.5,3.0],["Brazil","South America","Republicanos",4.5,2.5,3.5],["Brazil","South America","Uni\u00e3o Brasil",5.0,3.0,4.0],["Brazil","South America","Solidariedade",3.0,2.5,2.5],["Argentina","South America","Peronismo / PJ",-2.5,2.5,-3.5],["Argentina","South America","UCR",2.0,-1.5,2.0],["Argentina","South America","PRO",4.5,-1.0,5.0],["Argentina","South America","La Libertad Avanza",3.5,-6.0,8.5],["Argentina","South America","Frente de Izquierda",-8.5,-2.5,-8.5],["Argentina","South America","Hacemos",4.0,2.0,3.5],["Colombia","South America","Pacto Hist\u00f3rico",-5.5,0.5,-5.5],["Colombia","South America","Centro Democr\u00e1tico",7.0,3.0,6.5],["Colombia","South America","Partido Liberal",1.5,-1.0,1.0],["Colombia","South America","Cambio Radical",5.0,2.0,4.5],["Colombia","South America","Partido Conservador",6.0,3.0,5.5],["Colombia","South America","Partido Verde",-4.5,-3.5,-4.0],["Chile","South America","Partido Comunista",-8.0,0.5,-8.5],["Chile","South America","Partido Socialista",-5.0,-1.5,-4.5],["Chile","South America","Renovaci\u00f3n Nacional",5.5,1.5,5.0],["Chile","South America","UDI",7.0,3.0,6.5],["Chile","South America","Frente Amplio",-6.5,-3.5,-6.0],["Chile","South America","Partido Republicano",8.0,2.5,7.5],["Chile","South America","PDC",2.0,0.5,1.0],["Chile","South America","Revoluci\u00f3n Democr\u00e1tica",-5.5,-3.5,-5.0],["Peru","South America","Fuerza Popular",6.5,3.0,6.0],["Peru","South America","Per\u00fa Libre",-5.5,2.0,-6.5],["Peru","South America","Acci\u00f3n Popular",2.0,1.5,1.5],["Peru","South America","Renovaci\u00f3n Popular",6.5,1.5,6.0],["Peru","South America","Alianza para el Progreso",4.0,3.5,3.5],["Peru","South America","Podemos Per\u00fa",4.5,3.5,4.0],["Bolivia","South America","MAS",-4.5,3.5,-5.5],["Bolivia","South America","Comunidad Ciudadana",3.5,-1.0,3.0],["Bolivia","South America","Creemos",6.0,2.0,5.5],["Ecuador","South America","UNES",-3.0,2.5,-3.5],["Ecuador","South America","Movimiento Construye",4.5,-1.5,4.0],["Ecuador","South America","Pachakutik",-6.0,0.0,-6.0],["Ecuador","South America","ADN",5.5,2.0,5.0],["Uruguay","South America","Frente Amplio",-5.5,-2.0,-5.0],["Uruguay","South America","Partido Nacional",4.5,1.0,4.0],["Uruguay","South America","Partido Colorado",3.0,-1.0,2.5],["Uruguay","South America","Cabildo Abierto",6.5,4.5,4.0],["Uruguay","South America","Partido de la Gente",3.5,1.5,3.0],["Paraguay","South America","ANR / Colorado",5.5,4.0,4.5],["Paraguay","South America","PLRA",2.0,0.0,1.5],["Paraguay","South America","Frente Guasu",-5.5,2.0,-5.5],["Guyana","South America","PPP/Civic",-2.5,2.0,-3.0],["Guyana","South America","APNU",4.0,3.5,3.5],["Guyana","South America","Alliance For Change",1.5,0.5,1.5],["Suriname","South America","Nationale Partij Suriname",2.0,1.5,1.5],["Suriname","South America","Vooruitstrevende Hervormingspartij",1.0,1.0,0.5],["Suriname","South America","Nationale Democratische Partij",4.5,5.0,4.0],["Suriname","South America","Algemene Bevrijdings- en Ontwikkelingspartij",-4.0,2.0,-4.0],["Australia","Oceania","Australian Labor Party",-3.5,-2.0,-3.5],["Australia","Oceania","Liberal Party",5.0,1.0,4.5],["Australia","Oceania","The Nationals",6.0,2.0,5.5],["Australia","Oceania","Australian Greens",-7.5,-7.0,-6.5],["Australia","Oceania","One Nation",8.0,4.0,4.0],["Australia","Oceania","Teal Independents",-0.5,-3.5,1.0],["Australia","Oceania","United Australia Party",6.5,1.5,5.5],["Australia","Oceania","Australian Democrats",0.5,-4.5,1.5],["Australia","Oceania","Liberal Democrats (AU)",3.5,-6.0,6.0],["Australia","Oceania","Animal Justice Party",-5.5,-7.0,-5.0],["New Zealand","Oceania","New Zealand Labour",-3.5,-2.5,-3.5],["New Zealand","Oceania","National Party",4.5,1.0,4.5],["New Zealand","Oceania","ACT New Zealand",3.0,-7.0,7.5],["New Zealand","Oceania","Green Party",-6.5,-6.5,-6.0],["New Zealand","Oceania","Te P\u0101ti M\u0101ori",-4.0,0.0,-4.5],["New Zealand","Oceania","New Zealand First",6.5,3.0,5.0],["New Zealand","Oceania","The Opportunities Party",-0.5,-4.0,0.5],["Papua New Guinea","Oceania","Pangu Party",2.0,2.5,1.5],["Papua New Guinea","Oceania","People's National Congress",3.5,3.0,3.0],["Papua New Guinea","Oceania","United Resource Party",4.0,3.5,3.5],["Papua New Guinea","Oceania","Triumph Heritage Empowerment",3.0,3.0,2.5],["Fiji","Oceania","People's Alliance",4.5,3.5,4.0],["Fiji","Oceania","Social Democratic Liberal Party",-1.5,2.0,-1.5],["Fiji","Oceania","National Federation Party",1.0,1.0,0.5],["Fiji","Oceania","FijiFirst",4.0,5.0,3.5],["Solomon Islands","Oceania","Solomon Islands Democratic Party",2.0,2.5,1.5],["Solomon Islands","Oceania","Our Party",3.0,3.0,2.5],["Solomon Islands","Oceania","Peoples Alliance Party",3.5,2.5,3.0],["Vanuatu","Oceania","Vanua'aku Pati",-2.0,2.0,-2.0],["Vanuatu","Oceania","People's Progressive Party",3.0,2.5,2.5],["Vanuatu","Oceania","Union of Moderate Parties",2.0,2.0,1.5],["Vanuatu","Oceania","Grens Jif Pati",1.5,1.5,1.0],["Samoa","Oceania","Human Rights Protection Party",3.5,2.5,2.5],["Samoa","Oceania","Fa'atuatua i le Atua Samoa ua Tasi",-1.5,1.0,-1.5],["Tonga","Oceania","Democratic Party of the Friendly Islands",-1.0,0.5,-1.0],["Tonga","Oceania","People's Democratic Party",-2.0,0.5,-2.0],["Kiribati","Oceania","Boutokaan Te Koaua",2.5,2.5,2.0],["Kiribati","Oceania","Maneaban Te Mauri",4.0,3.0,3.5],["Palestine","Asia","Fatah",4.0,4.5,-1.0],["Palestine","Asia","Hamas",8.5,8.5,0.5],["Palestine","Asia","PFLP",-7.5,2.0,-8.0],["Palestine","Asia","Palestinian Islamic Jihad",9.5,9.5,0.0],["Cook Islands","Oceania","Cook Islands Party",3.0,2.0,3.0],["Cook Islands","Oceania","Democratic Party (Cook Islands)",-1.0,1.5,-1.0]];
+
+
+// ─── Source Registry — minimum 3-4 per country, bias-free institutional sources ──
+// Policy: academic datasets first, intergovernmental orgs second, research institutes third.
+// No partisan media, no single-ideology think-tanks.
+const SRCS={
+'GPS19':{s:'Global Party Survey 2019',f:'Norris P. "Global Party Survey, 2019." Harvard Dataverse, doi:10.7910/DVN/WMGTNS, 2020. 1,861 party and election experts; 1,043 parties in 163 countries. Measures: economic L-R (Q5_LR), cultural liberal-authoritarian (Q6_LIBERAL), populism index. Widest-coverage expert party survey globally.'},
+'VPARTY':{s:'V-Party Dataset (V-Dem)',f:'Lührmann A, Düpont N, Higashijima M et al. "Varieties of Party Identity and Organization (V-Party) Dataset V1." V-Dem Project, doi:10.23696/vpartydsv1, 2020. 711 experts; 1,955 parties across 169 countries, 1970-2019. Variables: v2paideol (ideology), v2pariglef (left-right self-placement), v2pawomlab, v2paanteli (populism), v2palgbt, v2parelig. Uses Bayesian IRT model.'},
+'CHES24':{s:'CHES 2024',f:'Rovny J, Bakker R, Hooghe L, Jolly S, Marks G, Polk J, Steenbergen M, Vachudova MA. "25 Years of Political Party Positions in Europe: CHES 1999–2024." Working paper 2025. chesdata.eu — 609 political scientists; 31 countries. Direct lrecon/galtan scores transformed ×2 from midpoint.'},
+'CHES_CA':{s:'CHES-Canada 2021',f:'Bakker R et al. "CHES-Canada 2021." chesdata.eu/chescanada — Expert survey of Canadian federal parties.'},
+'CHES_LA':{s:'CHES Latin America 2023',f:'Zechmeister E & Lupu N (LAPOP/Vanderbilt). "CHESLA 2023." chesdata.eu/chesla — 18 Latin American party systems.'},
+'CHES_IL':{s:'CHES Israel 2023',f:'"Chapel Hill Expert Survey Israel 2023." chesdata.eu/chesisrael — Israeli party positioning.'},
+'VDEM':{s:'V-Dem Dataset v14',f:'Coppedge M, Gerring J et al. "V-Dem Dataset v14." Varieties of Democracy Project, Univ. of Gothenburg & Kellogg Inst., 2024. v-dem.net — Liberal Democracy Index, Egalitarian Index, party scores.'},
+'MARPOR':{s:'Manifesto Project 2024',f:'Lehmann P, Burst T et al. "Manifesto Corpus." Version 2024a. MARPOR/WZB Berlin Social Science Centre, 2024. manifesto-project.eu — Coded party manifestos; RILE index and per-issue scores.'},
+'FH24':{s:'Freedom House 2024',f:'Freedom House. "Freedom in the World 2024." Washington D.C.: Freedom House, 2024. freedomhouse.org — Political Rights and Civil Liberties scores; used for regime-type classification.'},
+'BTI24':{s:'Bertelsmann BTI 2024',f:'Bertelsmann Stiftung. "Transformation Index BTI 2024." Gütersloh: Bertelsmann Stiftung, 2024. bti-project.org — Democracy status, rule of law, economic transformation; 137 countries.'},
+'PC25':{s:'Political Compass 2024-25',f:'Political Compass Party Analysis 2024–2025. Pace News Ltd., London. politicalcompass.org — Manifesto + voting record analysis on economic left/right and social libertarian/authoritarian axes.'},
+'ISEAS':{s:'ISEAS-Yusof Ishak Inst.',f:'ISEAS–Yusof Ishak Institute. "Southeast Asia Political Analysis 2023–2025." Singapore: ISEAS, 2024. iseas.edu.sg — Peer-reviewed Southeast Asia politics research.'},
+'ICG':{s:'Intl Crisis Group',f:'International Crisis Group. Country Reports & Briefings 2023–2025. crisisgroup.org — Non-partisan conflict analysis; used for party framing in fragile/conflict states.'},
+'IPU':{s:'IPU Parline 2025',f:'Inter-Parliamentary Union. "Parline Database on National Parliaments." Geneva: IPU, 2025. data.ipu.org — Official parliamentary composition, party descriptions.'},
+'EIU':{s:'EIU Democracy Index 2024',f:'Economist Intelligence Unit. "Democracy Index 2024." London: EIU, 2025. eiu.com — Regime classification and political culture scores for 167 countries.'},
+'OSCE':{s:'OSCE/ODIHR Reports',f:'OSCE Office for Democratic Institutions and Human Rights. "Election Observation Reports 2022–2025." Warsaw: ODIHR. odihr.pl — Electoral process, party platform analysis.'},
+'NDI':{s:'NDI Party Profiles',f:'National Democratic Institute. Political Party Data & Profiles, 2024. ndi.org — Party governance, platform documentation.'},
+'LOKNITI':{s:'Lokniti-CSDS 2024',f:'Lokniti–Centre for the Study of Developing Societies. "National Election Study 2024 & Party Surveys." New Delhi, 2024. lokniti.org — India-specific multi-wave survey; ideological positioning of Indian parties.'},
+'NOMINATE':{s:'DW-NOMINATE 2025',f:'Poole KT & Rosenthal H. "DW-NOMINATE Congressional Ideology Scores." Voteview.com, 2025. voteview.com — Roll-call vote–based legislative ideology for US Congress.'},
+'IDEA':{s:'International IDEA',f:'International Institute for Democracy and Electoral Assistance. "Political Party Databases 2024." Stockholm: IDEA, 2024. idea.int — Party funding, structure, platform data.'},
+'WVS':{s:'World Values Survey W7',f:'Haerpfer C, Inglehart R et al. (eds.) "World Values Survey Wave 7 (2017–2022)." WVSA & JD Systems, Madrid, 2022. worldvaluessurvey.org — Mass political values; used to calibrate social axis.'},
+};
+
+// Country → source keys (3-4 per country, ordered by relevance)
+// Selection criteria: CHES where available, then regional expert surveys,
+// then V-Dem + regime-specific institutional sources.
+
+// Compressed source lookup: default=[GPS19,VPARTY,FH24,BTI24] unless overridden
+const CS_DEFAULTS=['GPS19','VPARTY','FH24','BTI24'];
+const CS_OVERRIDES={
+  // CHES primary coverage (31 EU + nearby)
+  'United Kingdom':['CHES24','MARPOR','PC25','VDEM'],
+  'Germany':['CHES24','MARPOR','PC25','VDEM'],
+  'France':['CHES24','MARPOR','PC25','VDEM'],
+  'Italy':['CHES24','MARPOR','PC25','VDEM'],
+  'Spain':['CHES24','MARPOR','VDEM','EIU'],
+  'Sweden':['CHES24','MARPOR','VDEM','EIU'],
+  'Netherlands':['CHES24','MARPOR','VDEM','EIU'],
+  'Belgium':['CHES24','MARPOR','VDEM','EIU'],
+  'Austria':['CHES24','MARPOR','VDEM','EIU'],
+  'Switzerland':['CHES24','MARPOR','VDEM','EIU'],
+  'Denmark':['CHES24','MARPOR','VDEM','EIU'],
+  'Norway':['CHES24','MARPOR','VDEM','EIU'],
+  'Finland':['CHES24','MARPOR','VDEM','EIU'],
+  'Ireland':['CHES24','MARPOR','PC25','VDEM'],
+  'Portugal':['CHES24','MARPOR','VDEM','EIU'],
+  'Greece':['CHES24','MARPOR','VDEM','EIU'],
+  'Poland':['CHES24','MARPOR','VDEM','FH24'],
+  'Hungary':['CHES24','MARPOR','VDEM','FH24'],
+  'Czech Republic':['CHES24','MARPOR','VDEM','EIU'],
+  'Slovakia':['CHES24','MARPOR','VDEM','BTI24'],
+  'Romania':['CHES24','MARPOR','VDEM','BTI24'],
+  'Bulgaria':['CHES24','MARPOR','VDEM','BTI24'],
+  'Croatia':['CHES24','MARPOR','VDEM','BTI24'],
+  'Slovenia':['CHES24','MARPOR','VDEM','EIU'],
+  'Estonia':['CHES24','MARPOR','VDEM','EIU'],
+  'Latvia':['CHES24','MARPOR','VDEM','EIU'],
+  'Lithuania':['CHES24','MARPOR','VDEM','EIU'],
+  'Luxembourg':['CHES24','MARPOR','VDEM','IPU'],
+  'Malta':['CHES24','MARPOR','VDEM','IPU'],
+  'Cyprus':['CHES24','MARPOR','VDEM','IPU'],
+  'Iceland':['CHES24','MARPOR','VDEM','IPU'],
+  'Turkey':['CHES24','VDEM','BTI24','FH24'],
+  // CHES regional surveys
+  'Canada':['CHES_CA','GPS19','MARPOR','VPARTY'],
+  'Israel':['CHES_IL','MARPOR','VDEM','EIU'],
+  'Argentina':['CHES_LA','MARPOR','VDEM','BTI24'],
+  'Bolivia':['CHES_LA','MARPOR','VDEM','BTI24'],
+  'Brazil':['CHES_LA','MARPOR','PC25','VDEM'],
+  'Chile':['CHES_LA','MARPOR','VDEM','BTI24'],
+  'Colombia':['CHES_LA','MARPOR','VDEM','BTI24'],
+  'Costa Rica':['CHES_LA','VDEM','BTI24','IPU'],
+  'Dominican Republic':['CHES_LA','VDEM','BTI24','IPU'],
+  'Ecuador':['CHES_LA','MARPOR','VDEM','BTI24'],
+  'El Salvador':['CHES_LA','VDEM','BTI24','ICG'],
+  'Guatemala':['CHES_LA','VDEM','BTI24','ICG'],
+  'Honduras':['CHES_LA','VDEM','BTI24','ICG'],
+  'Mexico':['CHES_LA','MARPOR','VDEM','BTI24'],
+  'Nicaragua':['CHES_LA','VDEM','FH24','BTI24'],
+  'Panama':['CHES_LA','VDEM','BTI24','IPU'],
+  'Paraguay':['CHES_LA','MARPOR','VDEM','BTI24'],
+  'Peru':['CHES_LA','MARPOR','VDEM','BTI24'],
+  'Uruguay':['CHES_LA','MARPOR','VDEM','BTI24'],
+  'Venezuela':['CHES_LA','GPS19','MARPOR','VPARTY'],
+  // Manifesto-primary
+  'United States':['GPS19','MARPOR','PC25','NOMINATE'],
+  'Japan':['GPS19','VPARTY','MARPOR','PC25'],
+  'South Korea':['GPS19','VPARTY','MARPOR','BTI24'],
+  'Australia':['GPS19','VPARTY','MARPOR','PC25'],
+  'New Zealand':['GPS19','VPARTY','MARPOR','PC25'],
+  'Taiwan':['GPS19','VPARTY','MARPOR','EIU'],
+  // Regional/specialist
+  'India':['GPS19','VPARTY','MARPOR','LOKNITI'],
+  'Indonesia':['GPS19','VPARTY','ISEAS','BTI24'],
+  'Philippines':['GPS19','VPARTY','ISEAS','BTI24'],
+  'Malaysia':['GPS19','VPARTY','ISEAS','BTI24'],
+  'Thailand':['GPS19','VPARTY','ISEAS','BTI24'],
+  'Singapore':['GPS19','VPARTY','ISEAS','EIU'],
+  'Myanmar':['GPS19','VPARTY','ICG','FH24'],
+  // ICG-primary for conflict states
+  'Iraq':['GPS19','VPARTY','BTI24','ICG'],
+  'Lebanon':['GPS19','VPARTY','ICG','FH24'],
+  'Syria':['GPS19','VPARTY','ICG','FH24'],
+  'Yemen':['GPS19','VPARTY','ICG','FH24'],
+  'Somalia':['GPS19','VPARTY','ICG','FH24'],
+  'Libya':['GPS19','VPARTY','ICG','FH24'],
+  'Sudan':['GPS19','VPARTY','ICG','FH24'],
+  'South Sudan':['GPS19','VPARTY','ICG','FH24'],
+  'Afghanistan':['GPS19','VPARTY','ICG','FH24'],
+  'Palestine':['GPS19','VPARTY','ICG','FH24'],
+  // Single-party / near-totalitarian
+  'China':['GPS19','VPARTY','FH24','EIU'],
+  'Russia':['GPS19','VPARTY','FH24','BTI24'],
+  'Belarus':['GPS19','VPARTY','FH24','BTI24'],
+  'Iran':['GPS19','VPARTY','BTI24','FH24'],
+  'Serbia':['CHES24','VDEM','BTI24','FH24'],
+  'Montenegro':['CHES24','VDEM','BTI24','OSCE'],
+  'North Macedonia':['CHES24','VDEM','BTI24','OSCE'],
+  'Albania':['CHES24','VDEM','BTI24','OSCE'],
+  'Kosovo':['CHES24','VDEM','BTI24','OSCE'],
+  'Bosnia and Herzegovina':['CHES24','VDEM','BTI24','OSCE'],
+  'Ukraine':['CHES24','VDEM','BTI24','FH24'],
+  'Moldova':['CHES24','VDEM','BTI24','OSCE'],
+  'Georgia':['GPS19','VPARTY','BTI24','OSCE'],
+  'Armenia':['GPS19','VPARTY','BTI24','OSCE'],
+  'Azerbaijan':['GPS19','VPARTY','BTI24','OSCE'],
+};
+const COUNTRY_SRCS={get(c){return CS_OVERRIDES[c]||CS_DEFAULTS;}};
+;
+function getPartySrcs(p){
+  const keys=COUNTRY_SRCS.get(p.country);
+  return keys.map(k=>SRCS[k]).filter(Boolean);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ESTIMATION FLAGS — asterisk system
+//
+// Data hierarchy (best to least rigorous):
+//   Tier 1: CHES 2024 (31 EU+Turkey+Iceland+Norway+Switzerland+UK, 609 experts)
+//           + CHES-LA (18 Latin America) + CHES-CA + CHES-IL
+//   Tier 2: Global Party Survey 2019 (Norris, Harvard; 163 countries, 1,861 experts)
+//           + V-Party Dataset (Lührmann et al.; 169 countries, 711 experts, 1970-2019)
+//           + Manifesto Project (~50 countries)
+//   Tier 3*: Qualitative estimation — structured analogical reasoning from BTI/FH narratives
+//            Applies to: micro-states not in any survey, parties formed after 2019 cutoff,
+//            authoritarian states where independent expert survey was impossible.
+//
+// GPS 2019 doi:10.7910/DVN/WMGTNS  |  V-Party doi:10.23696/vpartydsv1
+// ══════════════════════════════════════════════════════════════════════════════
+
+const EST_COUNTRIES=new Set(["Afghanistan", "Andorra", "Cook Islands", "Eritrea", "Kiribati", "Liechtenstein", "Monaco", "North Korea", "Samoa", "San Marino", "Solomon Islands", "Tonga", "Turkmenistan", "Vanuatu"]);
+
+const EST_PAIRS_RAW=[
+  ["Bahrain","Al-Asalah (Salafi)"],
+  ["Bahrain","Al-Wefaq (banned opposition)"],
+  ["Bahrain","National Unity Gathering"],
+  ["Bangladesh","Gono Odhikar Parishad"],
+  ["Bangladesh","National Citizen Party"],
+  ["Burkina Faso","MPSR / Junta (Traoré)"],
+  ["Chad","FAR (Transitional)"],
+  ["Czech Republic","Přísaha"],
+  ["France","Place Publique"],
+  ["France","Reconquête"],
+  ["Gabon","Comité pour la Transition et la Restauration des Institutions"],
+  ["Germany","BSW"],
+  ["Guinea","CNRD / Junta"],
+  ["India","Bharat Rashtra Samithi"],
+  ["Kuwait","Hadas (Muslim Brotherhood bloc)"],
+  ["Kuwait","Islamic Salafi Alliance"],
+  ["Kuwait","National Democratic Alliance"],
+  ["Kuwait","Popular Action Bloc (Arab nationalist)"],
+  ["Maldives","People's National Congress"],
+  ["Mali","CNSP / Junta (Goïta)"],
+  ["Myanmar","USDP / Tatmadaw"],
+  ["Netherlands","BoerBurgerBeweging"],
+  ["Netherlands","JA21"],
+  ["Netherlands","NSC"],
+  ["Niger","CNSP (Junta)"],
+  ["Palestine","Hamas"],
+  ["Palestine","Palestinian Islamic Jihad"],
+  ["Romania","AUR"],
+  ["Romania","SOS România"],
+  ["Slovakia","Hlas-SD"],
+  ["South Korea","New Reform Party"],
+  ["South Korea","Rebuilding Korea Party"],
+  ["South Sudan","National Salvation Front"],
+  ["Sudan","Rapid Support Forces"],
+  ["Sudan","Sudanese Armed Forces"],
+  ["Syria","Hayat Tahrir al-Sham"],
+  ["Tunisia","Aich Tounsi"],
+  ["United Kingdom","Workers Party of Britain"]
+];
+const EST_PAIRS=new Set(EST_PAIRS_RAW.map(([c,p])=>c+'||'+p));
+
+function isEstimated(p){
+  if(EST_COUNTRIES.has(p.country)) return true;
+  if(EST_PAIRS.has(p.country+'||'+p.name)) return true;
+  return false;
+}
+
+const SYM=['●','■','▲','▼','◆','★','✦','◉','✚','◇','△','▽','⬡','⬟','✕','⊕','⊗','▸','⬢','◈'];
+
+// ─── Build party objects ─────────────────────────────────────────────────────
+const countries=[...new Set(RAW3D.map(r=>r[0]))].sort();
+const CCOLORS={};
+countries.forEach((c,i)=>{
+  const h=Math.round((i/countries.length)*360);
+  const s=58+(i%5)*7;
+  const l=52+(i%3)*6;
+  CCOLORS[c]=`hsl(${h},${s}%,${l}%)`;
+});
+
+const cSymIdx={};
+function getOrientation(xp,ys,ze){
+  const o=[];
+  // Based on economic (z_econ) for econ labels
+  if(ze<=-6) o.push('far-left');
+  else if(ze<=-3) o.push('left');
+  else if(ze<=-1) o.push('center-left');
+  else if(ze<=1) o.push('center');
+  else if(ze<=3) o.push('center-right');
+  else if(ze<=6) o.push('right');
+  else o.push('far-right');
+  if(ys>=5) o.push('authoritarian');
+  if(ys<=-5) o.push('liberal');
+  return o;
+}
+
+const PARTIES=RAW3D.map((r,idx)=>{
+  const [country,continent,name,xp,ys,ze]=r;
+  const si=(cSymIdx[country]=(cSymIdx[country]||0));
+  cSymIdx[country]++;
+  const est=isEstimated({country,name});
+  const dname=est?name+' *':name;
+  return {idx,country,continent,name,dname,est,xp,ys,ze,
+    sym:SYM[si%SYM.length],
+    color:CCOLORS[country],
+    orients:getOrientation(xp,ys,ze)
+  };
+});
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let fContinent='',fCountry='',fOrient='',searchQ='';
+let carIdx=0, hlParty=null;
+function clearQ(){searchQ='';const q=$['q'];if(q)q.value='';$['q-clr'].style.display='none';rebuild();render();}
+let projection='xy'; // 'xy','xz','yz'
+let c2dDirty=true; // only redraw 2D when needed
+
+// ─── Three.js setup ──────────────────────────────────────────────────────────
+const c3d=$['c3d'];
+const renderer=new THREE.WebGLRenderer({canvas:c3d,antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setClearColor(0x070b12,1);
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(42,1,0.1,500);
+
+// Camera spherical coordinates
+let camTheta=0.7, camPhi=1.05, camR=44;
+
+function setCam(){
+  camera.position.set(
+    camR*Math.sin(camPhi)*Math.cos(camTheta),
+    camR*Math.cos(camPhi),
+    camR*Math.sin(camPhi)*Math.sin(camTheta)
+  );
+  camera.lookAt(0,0,0);
+}
+
+// ─── Per-symbol baked textures (one 64×64 canvas per glyph, white on transparent) ──
+const SYM_TEX={};
+(function bakeSymbols(){
+  const S=64;
+  SYM.forEach(sym=>{
+    const cv=document.createElement('canvas');
+    cv.width=S; cv.height=S;
+    const ctx=cv.getContext('2d');
+    ctx.clearRect(0,0,S,S);
+    // Soft glow halo so glyphs read at small scale
+    ctx.shadowColor='rgba(255,255,255,0.55)';
+    ctx.shadowBlur=6;
+    ctx.fillStyle='#ffffff';
+    ctx.font='30px system-ui,sans-serif';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText(sym,S/2,S/2+1);
+    SYM_TEX[sym]=new THREE.CanvasTexture(cv);
+  });
+})();
+
+// ─── Grid & axes ─────────────────────────────────────────────────────────────
+const gridGroup=new THREE.Group();
+scene.add(gridGroup);
+
+function buildGrid(){
+  while(gridGroup.children.length) gridGroup.remove(gridGroup.children[0]);
+
+  // Helper: line between two points
+  function line(x1,y1,z1,x2,y2,z2,col,op){
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute([x1,y1,z1,x2,y2,z2],3));
+    const m=new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op});
+    return new THREE.Line(g,m);
+  }
+
+  const E=10;
+  // Cube edges
+  const edges=[
+    [[-E,-E,-E],[-E,-E, E]],[[-E,-E,-E],[-E, E,-E]],[[-E,-E,-E],[ E,-E,-E]],
+    [[ E, E, E],[ E, E,-E]],[[ E, E, E],[ E,-E, E]],[[ E, E, E],[-E, E, E]],
+    [[ E,-E,-E],[ E,-E, E]],[[ E,-E,-E],[ E, E,-E]],
+    [[-E, E,-E],[ E, E,-E]],[[-E, E,-E],[-E, E, E]],
+    [[ E,-E, E],[-E,-E, E]],[[-E, E, E],[-E,-E, E]],
+  ];
+  edges.forEach(([a,b])=>gridGroup.add(line(...a,...b,0x1e2d45,0.4)));
+
+  // Internal grid lines at ±5 on each pair of axes
+  const g5=[[-5,-5],[-5,5],[5,-5],[5,5]];
+  // XZ planes (horizontal slices at y=±5)
+  for(const y of[-5,0,5]){
+    for(const v of[-5,0,5]){
+      gridGroup.add(line(-E,y,v, E,y,v,0x1a2c3f,y===0?0.5:0.25));
+      gridGroup.add(line(v,y,-E, v,y, E,0x1a2c3f,y===0?0.5:0.25));
+    }
+  }
+  // YZ planes (vertical slices at x=±5,0)
+  for(const x of[-5,0,5]){
+    for(const v of[-5,0,5]){
+      gridGroup.add(line(x,-E,v, x, E,v,0x1a2c3f,x===0?0.5:0.25));
+      gridGroup.add(line(x,v,-E, x,v, E,0x1a2c3f,x===0?0.5:0.25));
+    }
+  }
+
+  // Axis lines (colored)
+  const AX=12;
+  gridGroup.add(line(-AX,0,0, AX,0,0, 0xf05060, 0.8)); // X pol (red)
+  gridGroup.add(line(0,-AX,0, 0, AX,0, 0x30d080, 0.8)); // Y soc (green)
+  gridGroup.add(line(0,0,-AX, 0,0, AX, 0x4090f0, 0.8)); // Z econ (blue)
+
+  // Arrowheads on positive ends
+  function arrow(dir,col){
+    const ah=new THREE.ArrowHelper(dir,new THREE.Vector3(0,0,0),AX+1.5,col,1.5,0.6);
+    // position at axis start
+    gridGroup.add(ah);
+  }
+  // Positive direction arrows
+  {
+    const ah=new THREE.ArrowHelper(new THREE.Vector3(1,0,0),new THREE.Vector3(AX-0.1,0,0),1.5,0xf05060,1.5,0.6);
+    gridGroup.add(ah);
+    const ah2=new THREE.ArrowHelper(new THREE.Vector3(0,1,0),new THREE.Vector3(0,AX-0.1,0),1.5,0x30d080,1.5,0.6);
+    gridGroup.add(ah2);
+    const ah3=new THREE.ArrowHelper(new THREE.Vector3(0,0,1),new THREE.Vector3(0,0,AX-0.1),1.5,0x4090f0,1.5,0.6);
+    gridGroup.add(ah3);
+  }
+
+  // Mid-plane semi-transparent fills
+  function quadPlane(axis, val, col, op){
+    const geo=new THREE.PlaneGeometry(20,20);
+    const mat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,side:THREE.DoubleSide,depthWrite:false});
+    const mesh=new THREE.Mesh(geo,mat);
+    if(axis==='x'){mesh.rotation.y=Math.PI/2; mesh.position.x=val;}
+    if(axis==='y'){mesh.rotation.x=Math.PI/2; mesh.position.y=val;}
+    if(axis==='z'){mesh.position.z=val;}
+    gridGroup.add(mesh);
+  }
+  quadPlane('x',0,0xf05060,0.015);
+  quadPlane('y',0,0x30d080,0.015);
+  quadPlane('z',0,0x4090f0,0.015);
+}
+
+// ─── Sprite pool ──────────────────────────────────────────────────────────────
+// Each party gets its own THREE.Sprite so it can carry a unique glyph symbol
+// and be individually opacity-controlled on selection.
+const spriteGroup=new THREE.Group();
+scene.add(spriteGroup);
+const partySprites={}; // partyIdx → sprite
+
+const SPRITE_SCALE=0.55;      // world units — small enough to minimise cluster overlap
+const SPRITE_SCALE_HL=0.95;   // selected party rendered larger
+const OP_ACTIVE=1.0;          // filtered, nothing selected
+const OP_DIM_FILTER=0.05;     // outside current filter
+const OP_FADE=0.30;           // filtered but not the selected one (30% as requested)
+
+function buildSprites(){
+  // Dispose every existing sprite material to avoid leaks
+  while(spriteGroup.children.length){
+    const s=spriteGroup.children[0];
+    s.material.dispose();
+    spriteGroup.remove(s);
+  }
+  Object.keys(partySprites).forEach(k=>delete partySprites[k]);
+
+  const filtered=getFiltered();
+  const filtSet=new Set(filtered.map(p=>p.idx));
+
+  PARTIES.forEach(p=>{
+    const inFilter=filtSet.has(p.idx);
+    const isHL=hlParty===p;
+
+    // opacity rules:
+    //  · outside filter → OP_DIM_FILTER (ghost)
+    //  · in filter, nothing selected → OP_ACTIVE
+    //  · in filter, something selected and this IS it → OP_ACTIVE
+    //  · in filter, something selected and this is NOT it → OP_FADE (30%)
+    let op;
+    if(!inFilter) op=OP_DIM_FILTER;
+    else if(!hlParty) op=OP_ACTIVE;
+    else op=isHL?OP_ACTIVE:OP_FADE;
+
+    const mat=new THREE.SpriteMaterial({
+      map:SYM_TEX[p.sym],
+      color:new THREE.Color(p.color),
+      transparent:true,
+      opacity:op,
+      depthTest:true,
+      sizeAttenuation:true,
+    });
+    const sprite=new THREE.Sprite(mat);
+    sprite.position.set(p.xp,p.ys,p.ze);
+    const sc=isHL?SPRITE_SCALE_HL:SPRITE_SCALE;
+    sprite.scale.set(sc,sc,1);
+    sprite.userData.partyIdx=p.idx;
+    spriteGroup.add(sprite);
+    partySprites[p.idx]=sprite;
+  });
+}
+
+// Selected-party halo ring
+let haloMesh=null;
+function buildHalo(){
+  if(haloMesh){scene.remove(haloMesh); haloMesh=null;}
+  if(!hlParty) return;
+  // Outer wireframe sphere so selected node is unambiguous
+  const geo=new THREE.SphereGeometry(0.72,14,9);
+  const op=hlParty.est?0.18:0.28;  // dimmer wireframe for estimated parties
+  const mat=new THREE.MeshBasicMaterial({
+    color:new THREE.Color(hlParty.color),
+    transparent:true,opacity:op,wireframe:true
+  });
+  haloMesh=new THREE.Mesh(geo,mat);
+  haloMesh.position.set(hlParty.xp,hlParty.ys,hlParty.ze);
+  scene.add(haloMesh);
+}
+
+// ─── Raycasting against sprite group ─────────────────────────────────────────
+// Sprites in Three.js r128 support raycaster.intersectObject natively.
+// We cast against all sprites in spriteGroup and return the closest hit.
+const raycaster=new THREE.Raycaster();
+const mouse=new THREE.Vector2();
+
+function pickParty(e){
+  const rect=c3d.getBoundingClientRect();
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(spriteGroup.children,false);
+  // Filter to visible (opacity>0.04) sprites only so ghosts aren't selectable
+  const valid=hits.filter(h=>h.object.material.opacity>0.04);
+  if(valid.length>0){
+    const idx=valid[0].object.userData.partyIdx;
+    return PARTIES.find(p=>p.idx===idx)||null;
+  }
+  return null;
+}
+
+// ─── Axis label projection ─────────────────────────────────────────────────────
+const AX_LABELS=[
+  {id:'ax-pol-neg',pos:new THREE.Vector3(-13,0,0)},
+  {id:'ax-pol-pos',pos:new THREE.Vector3(13,0,0)},
+  {id:'ax-soc-neg',pos:new THREE.Vector3(0,-13,0)},
+  {id:'ax-soc-pos',pos:new THREE.Vector3(0,13,0)},
+  {id:'ax-econ-neg',pos:new THREE.Vector3(0,0,-13)},
+  {id:'ax-econ-pos',pos:new THREE.Vector3(0,0,13)},
+];
+const _tmpVec=new THREE.Vector3();
+function updateAxisLabels(){
+  const W=c3d.clientWidth, H=c3d.clientHeight;
+  AX_LABELS.forEach(({id,pos})=>{
+    _tmpVec.copy(pos);
+    _tmpVec.project(camera);
+    const x=((_tmpVec.x+1)/2)*W;
+    const y=((-_tmpVec.y+1)/2)*H;
+    const el=document.getElementById(id);
+    if(!el) return;
+    if(_tmpVec.z>1){el.style.opacity='0'; return;}
+    el.style.opacity='1';
+    el.style.left=x+'px';
+    el.style.top=y+'px';
+  });
+}
+
+// ─── Resize handler ───────────────────────────────────────────────────────────
+function resize(){
+  const W=c3d.clientWidth, H=c3d.clientHeight;
+  renderer.setSize(W,H,false);
+  camera.aspect=W/H;
+  camera.updateProjectionMatrix();
+}
+
+// ─── Mouse interaction (drag to rotate, scroll to zoom) ──────────────────────
+let isDragging=false, prevMX=0,prevMY=0;
+const wrap=$['cmp-wrap'];
+wrap.addEventListener('mousedown',e=>{isDragging=true;prevMX=e.clientX;prevMY=e.clientY;wrap.classList.add('dragging');e.preventDefault();});
+document.addEventListener('mouseup',()=>{isDragging=false;wrap.classList.remove('dragging');});
+document.addEventListener('mousemove',e=>{
+  if(isDragging){
+    const dx=e.clientX-prevMX, dy=e.clientY-prevMY;
+    camTheta-=dx*0.012;
+    camPhi+=dy*0.012;
+    camPhi=Math.max(0.05,Math.min(Math.PI-0.05,camPhi));
+    prevMX=e.clientX; prevMY=e.clientY;
+    render();
+  } else {
+    // Hover
+    const p=pickParty(e);
+    if(p) ttShow(e,p); else ttHide();
+  }
+});
+c3d.addEventListener('wheel',e=>{
+  camR=Math.max(16,Math.min(90,camR+e.deltaY*0.06));
+  e.preventDefault();
+  render();
+},{passive:false});
+c3d.addEventListener('click',e=>{
+  const p=pickParty(e);
+  if(p){
+    hlParty=(hlParty===p?null:p);
+    if(p) syncCarouselToCountry(p.country);
+  } else {
+    hlParty=null;
+  }
+  rebuild(); render();
+});
+
+// Touch support
+let lastTouch=null,lastPinchDist=null;
+c3d.addEventListener('touchstart',e=>{
+  if(e.touches.length===1){lastTouch={x:e.touches[0].clientX,y:e.touches[0].clientY};}
+  if(e.touches.length===2){
+    const dx=e.touches[0].clientX-e.touches[1].clientX;
+    const dy=e.touches[0].clientY-e.touches[1].clientY;
+    lastPinchDist=Math.hypot(dx,dy);
+  }
+  e.preventDefault();
+},{passive:false});
+c3d.addEventListener('touchmove',e=>{
+  if(e.touches.length===1&&lastTouch){
+    const dx=e.touches[0].clientX-lastTouch.x;
+    const dy=e.touches[0].clientY-lastTouch.y;
+    camTheta-=dx*0.012; camPhi+=dy*0.012;
+    camPhi=Math.max(0.05,Math.min(Math.PI-0.05,camPhi));
+    lastTouch={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    render();
+  }
+  if(e.touches.length===2&&lastPinchDist!==null){
+    const dx=e.touches[0].clientX-e.touches[1].clientX;
+    const dy=e.touches[0].clientY-e.touches[1].clientY;
+    const dist=Math.hypot(dx,dy);
+    camR=Math.max(16,Math.min(90,camR-(dist-lastPinchDist)*0.2));
+    lastPinchDist=dist;
+    render();
+  }
+  e.preventDefault();
+},{passive:false});
+
+// ─── Tooltip ──────────────────────────────────────────────────────────────────
+function ttShow(e,p){
+  $['ttn'].textContent=p.dname;
+  $['ttc'].textContent=`${p.sym}  ${p.country}  ·  ${p.continent}`;
+  const axDiv=$['tt-axes'];
+  const axes=[
+    {lbl:'POL',val:p.xp,cls:'pol',col:'#f05060',neg:'Progressive',pos:'Conservative'},
+    {lbl:'SOC',val:p.ys,cls:'soc',col:'#30d080',neg:'Libertarian',pos:'Authoritarian'},
+    {lbl:'ECON',val:p.ze,cls:'econ',col:'#4090f0',neg:'Planned',pos:'Free Mkt'},
+  ];
+  axDiv.innerHTML=axes.map(a=>{
+    const pct=((a.val+10)/20)*100;
+    const dir=a.val>=0?a.pos:a.neg;
+    return `<div class="tt-ax">
+      <span class="tt-ax-lbl" style="color:${a.col}">${a.lbl}</span>
+      <div class="tt-ax-bar">
+        <div class="tt-ax-fill" style="width:${pct}%;background:${a.col};opacity:.6;left:0"></div>
+        <div style="position:absolute;left:50%;top:0;height:100%;width:1px;background:#253547"></div>
+      </div>
+      <span class="tt-ax-val" style="color:${a.col}">${a.val>0?'+':''}${a.val.toFixed(1)}</span>
+    </div>`;
+  }).join('');
+  const tt=$['tt'];
+  tt.style.display='block';
+  ttMove(e);
+}
+function ttMove(e){
+  const tt=$['tt'];
+  let x=e.clientX+14,y=e.clientY-14;
+  if(x+240>window.innerWidth) x=e.clientX-250;
+  if(y+140>window.innerHeight) y=e.clientY-150;
+  tt.style.left=x+'px'; tt.style.top=y+'px';
+}
+document.addEventListener('mousemove',e=>{ if($['tt'].style.display!=='none') ttMove(e);});
+function ttHide(){$['tt'].style.display='none';}
+
+// ─── 2D compass ───────────────────────────────────────────────────────────────
+const c2d=$['c2d'];
+const ctx2=c2d.getContext('2d');
+
+function draw2D(){
+  c2dDirty=false;
+  const W=c2d.width, H=c2d.height;
+  const PAD=22;
+  const CW=W-PAD*2, CH=H-PAD*2;
+  const CX=PAD+CW/2, CY=PAD+CH/2;
+
+  ctx2.clearRect(0,0,W,H);
+  ctx2.fillStyle='#070b12';
+  ctx2.fillRect(0,0,W,H);
+
+  // Background
+  ctx2.fillStyle='#0d1420';
+  ctx2.fillRect(PAD,PAD,CW,CH);
+
+  // Quadrant tints
+  function quad(qx,qy,col){
+    ctx2.fillStyle=col;
+    ctx2.fillRect(qx,qy,CW/2,CH/2);
+  }
+  quad(PAD,PAD,'rgba(240,80,96,0.04)');
+  quad(CX,PAD,'rgba(64,144,240,0.04)');
+  quad(PAD,CY,'rgba(48,208,128,0.04)');
+  quad(CX,CY,'rgba(240,180,40,0.04)');
+
+  // Grid lines
+  ctx2.strokeStyle='#1a2438';
+  ctx2.lineWidth=0.5;
+  ctx2.setLineDash([]);
+  for(const v of[-5,5]){
+    const fx=(v+10)/20;
+    const fy=(v+10)/20;
+    ctx2.beginPath(); ctx2.moveTo(PAD+fx*CW,PAD); ctx2.lineTo(PAD+fx*CW,PAD+CH); ctx2.stroke();
+    ctx2.beginPath(); ctx2.moveTo(PAD,PAD+fy*CH); ctx2.lineTo(PAD+CW,PAD+fy*CH); ctx2.stroke();
+  }
+
+  // Axes
+  ctx2.strokeStyle='#2a3f5a'; ctx2.lineWidth=1;
+  ctx2.beginPath(); ctx2.moveTo(CX,PAD); ctx2.lineTo(CX,PAD+CH); ctx2.stroke();
+  ctx2.beginPath(); ctx2.moveTo(PAD,CY); ctx2.lineTo(PAD+CW,CY); ctx2.stroke();
+
+  // Border
+  ctx2.strokeStyle='#1e2d45'; ctx2.lineWidth=1;
+  ctx2.strokeRect(PAD,PAD,CW,CH);
+
+  // Determine axis mapping
+  let xProp,yProp,xNeg,xPos,yNeg,yPos,xCol,yCol;
+  if(projection==='xy'){
+    xProp='xp';yProp='ys';xNeg='PROG';xPos='CON';yNeg='LIB';yPos='AUTH';xCol='#f05060';yCol='#30d080';
+  }else if(projection==='xz'){
+    xProp='xp';yProp='ze';xNeg='PROG';xPos='CON';yNeg='LEFT';yPos='RIGHT';xCol='#f05060';yCol='#4090f0';
+  }else{
+    xProp='ys';yProp='ze';xNeg='LIB';xPos='AUTH';yNeg='LEFT';yPos='RIGHT';xCol='#30d080';yCol='#4090f0';
+  }
+
+  // Axis labels
+  ctx2.font='7px DM Mono,monospace';
+  ctx2.textAlign='center';
+  ctx2.fillStyle=xCol;
+  ctx2.fillText('◀'+xNeg,PAD+8,CY-3);
+  ctx2.fillText(xPos+'▶',PAD+CW-6,CY-3);
+  ctx2.textAlign='center';
+  ctx2.fillStyle=yCol;
+  ctx2.fillText('▲'+yPos,CX+2,PAD+8);
+  ctx2.fillText('▼'+yNeg,CX+2,PAD+CH-4);
+
+  // Draw parties
+  const filtered=getFiltered();
+  const filtSet=new Set(filtered.map(p=>p.idx));
+
+  // Dimmed
+  PARTIES.filter(p=>!filtSet.has(p.idx)).forEach(p=>{
+    const px=PAD+((p[xProp]+10)/20)*CW;
+    const py=PAD+((-p[yProp]+10)/20)*CH;
+    ctx2.beginPath();
+    ctx2.arc(px,py,1.2,0,Math.PI*2);
+    ctx2.fillStyle=p.color+'18';
+    ctx2.fill();
+  });
+
+  // Active
+  filtered.forEach(p=>{
+    const px=PAD+((p[xProp]+10)/20)*CW;
+    const py=PAD+((-p[yProp]+10)/20)*CH;
+    const isHL=hlParty===p;
+    if(isHL){
+      ctx2.beginPath();
+      ctx2.arc(px,py,5,0,Math.PI*2);
+      ctx2.fillStyle=p.color+'33';
+      ctx2.fill();
+    }
+    ctx2.fillStyle=p.color+(isHL?'ff':'cc');
+    ctx2.font=(isHL?'10':'8')+'px system-ui';
+    ctx2.textAlign='center';
+    ctx2.textBaseline='middle';
+    ctx2.fillText(p.sym,px,py);
+  });
+}
+
+// ─── Filters ──────────────────────────────────────────────────────────────────
+function getFiltered(){
+  return PARTIES.filter(p=>{
+    if(fContinent&&p.continent!==fContinent) return false;
+    if(fCountry&&p.country!==fCountry) return false;
+    if(fOrient&&!p.orients.includes(fOrient)) return false;
+    if(searchQ){
+      const q=searchQ.toLowerCase();
+      if(!p.name.toLowerCase().includes(q)&&!p.country.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+}
+function getFilteredCountries(){
+  return [...new Set(getFiltered().map(p=>p.country))].sort();
+}
+function populateCountrySelect(){
+  const sel=$['sCoun'];
+  const cs=[...new Set(PARTIES.filter(p=>!fContinent||p.continent===fContinent).map(p=>p.country))].sort();
+  sel.innerHTML='<option value="">All Countries</option>'+
+    cs.map(c=>`<option value="${esc(c)}"${fCountry===c?' selected':''}>${c}</option>`).join('');
+}
+
+// ─── Legend carousel ──────────────────────────────────────────────────────────
+function syncCarouselToCountry(country){
+  const cs=getFilteredCountries();
+  const i=cs.indexOf(country);
+  if(i>=0) carIdx=i;
+}
+function renderLegend(){
+  const cs=getFilteredCountries();
+  if(!cs.length){
+    $['lcn'].textContent='No results';
+    $['lb'].innerHTML='<div style="padding:12px 9px;color:var(--muted);font-size:10px;font-family:var(--mono)">No parties match filters.</div>';
+    $['lct'].textContent='';
+    return;
+  }
+  carIdx=Math.max(0,Math.min(carIdx,cs.length-1));
+  const country=fCountry||cs[carIdx];
+  const parties=PARTIES.filter(p=>{
+    if(p.country!==country) return false;
+    if(fOrient&&!p.orients.includes(fOrient)) return false;
+    return true;
+  });
+  const ai=cs.indexOf(country);
+  $['lcn'].textContent=country;
+  $['lct'].textContent=fCountry?`${parties.length} parties`:`${ai+1}/${cs.length}`;
+  $['lb'].innerHTML=parties.map(p=>`
+    <div class="li${hlParty===p?' hl':''}" data-idx="${p.idx}">
+      <span class="lsym" style="color:${p.color}">${p.sym}</span>
+      <div class="ltxt">
+        <div class="lname" title="${esc(p.dname)}">${p.dname}</div>
+        <div class="lvals">
+          <span class="lval pol">POL ${p.xp>0?'+':''}${p.xp.toFixed(1)}</span>
+          <span class="lval soc">SOC ${p.ys>0?'+':''}${p.ys.toFixed(1)}</span>
+          <span class="lval econ">ECO ${p.ze>0?'+':''}${p.ze.toFixed(1)}</span>
+        </div>
+      </div>
+    </div>`).join('');
+  $$('.li').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const p=PARTIES[+el.dataset.idx];
+      hlParty=(hlParty===p?null:p);
+      if(p) syncCarouselToCountry(p.country);
+      rebuild(); render();
+    });
+  });
+}
+
+// ─── Stat bar ─────────────────────────────────────────────────────────────────
+function updateStat(){
+  const f=getFiltered();
+  const est=f.filter(p=>p.est).length;
+  const conf=f.length-est;
+  $['stat'].textContent=
+    `${f.length} parties · ${getFilteredCountries().length} countries · ${conf} survey-derived · ${est} estimated*`;
+}
+
+// ─── Full rebuild ─────────────────────────────────────────────────────────────
+function rebuild(){
+  c2dDirty=true;
+  buildSprites();
+  buildHalo();
+  renderLegend();
+  updateStat();
+  draw2D();
+  // Citations panel
+  const box=$['cite-box'];
+  const content=$['cite-content'];
+  if(hlParty){
+    box.style.display='block';
+    const srcs=getPartySrcs(hlParty);
+    const estNote=hlParty.est
+      ?`<div style="color:var(--accent2);font-size:8px;margin-bottom:6px;padding:3px 6px;background:rgba(240,180,40,.1);border-radius:3px;border:1px solid rgba(240,180,40,.25)">⚠ * Estimated — this party was not in any pre-2019 expert survey, or was formed after the GPS 2019 / V-Party 2020 cutoff. Positions are structured analogical estimates from narrative sources (BTI, Freedom House, ICG). Treat coordinates as directional approximations (±2-3 pts per axis).</div>`
+      :'';
+    content.innerHTML=`<div style="color:var(--accent);font-weight:600;margin-bottom:4px">${hlParty.dname}</div>`+estNote+
+      srcs.map((s,i)=>`<div style="margin-bottom:5px"><span style="color:var(--accent2)">${i+1}. ${esc(s.s)}</span><br><span style="opacity:.75">${esc(s.f)}</span></div>`).join('');
+  } else {
+    box.style.display='none';
+  }
+}
+
+// ─── Render ──────────────────────────────────────────────────────────────────
+function render(){
+  resize();
+  setCam();
+  updateAxisLabels();
+  renderer.render(scene,camera);
+  if(c2dDirty) draw2D();
+}
+
+// ─── Utility ─────────────────────────────────────────────────────────────────
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;');}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+buildGrid();
+rebuild();
+populateCountrySelect();
+render();
+
+// ─── Spin / Rotate state ─────────────────────────────────────────────────────
+// States: 'spin' (auto-rotate after idle), 'pause' (stopped mid-spin), 'stop' (halted, no idle)
+let spinState='spin';   // 'spin'|'pause'|'stop'
+let autoRotate=true;    // legacy alias used in keydown
+let lastInteract=Date.now();
+const IDLE_DELAY=4000;  // ms before auto-spin kicks in (spin state only)
+
+function setSpinState(s){
+  spinState=s;
+  autoRotate=(s==='spin');
+  $['btn-spin'].classList.toggle('on', s==='spin');
+  $['btn-pause'].classList.toggle('on', s==='pause');
+  $['btn-stop'].classList.toggle('on', s==='stop');
+}
+
+function autoRot(){
+  requestAnimationFrame(autoRot);
+  if(spinState==='spin'&&!isDragging&&(Date.now()-lastInteract>IDLE_DELAY)){
+    camTheta+=0.002;
+    render();
+  }
+  if(spinState==='pause'){/* frozen — no update */}
+}
+['mousedown','wheel','touchstart'].forEach(ev=>
+  document.addEventListener(ev,()=>{lastInteract=Date.now();}));
+autoRot();
+
+$['btn-spin'].addEventListener('click',()=>setSpinState('spin'));
+$['btn-pause'].addEventListener('click',()=>{
+  if(spinState==='pause') setSpinState('spin');
+  else setSpinState('pause');
+});
+$['btn-stop'].addEventListener('click',()=>{
+  setSpinState('stop');
+  camTheta=0.7; camPhi=1.05; camR=44; render();
+});
+
+// ─── Hamburger / sidebar ─────────────────────────────────────────────────────
+function openSidebar(){
+  $['sb'].classList.add('open');
+  $['sb-backdrop'].classList.add('visible');
+  $['cmp-wrap'].classList.add('blurred');
+}
+function closeSidebar(){
+  $['sb'].classList.remove('open');
+  $['sb-backdrop'].classList.remove('visible');
+  $['cmp-wrap'].classList.remove('blurred');
+}
+function toggleSidebar(){
+  if($['sb'].classList.contains('open')) closeSidebar();
+  else openSidebar();
+}
+
+// Event listeners
+$['sCont'].addEventListener('change',e=>{
+  fContinent=e.target.value; fCountry=''; carIdx=0;
+  populateCountrySelect(); rebuild(); render();
+});
+$['sCoun'].addEventListener('change',e=>{
+  fCountry=e.target.value;
+  if(fCountry){const cs=getFilteredCountries();carIdx=Math.max(0,cs.indexOf(fCountry));}
+  else carIdx=0;
+  hlParty=null; rebuild(); render();
+});
+$$('.chip').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    $$('.chip').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on'); fOrient=btn.dataset.o; carIdx=0; hlParty=null;
+    rebuild(); render();
+  });
+});
+$['bPrev'].addEventListener('click',()=>{
+  if(fCountry) return;
+  const cs=getFilteredCountries();
+  carIdx=(carIdx-1+cs.length)%cs.length; renderLegend(); draw2D();
+});
+$['bNext'].addEventListener('click',()=>{
+  if(fCountry) return;
+  const cs=getFilteredCountries();
+  carIdx=(carIdx+1)%cs.length; renderLegend(); draw2D();
+});
+$$('.proj-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    $$('.proj-btn').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on'); projection=btn.dataset.proj; draw2D();
+  });
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){
+    if(!fCountry){const cs=getFilteredCountries();carIdx=(carIdx-1+cs.length)%cs.length;renderLegend();draw2D();}
+  }
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'){
+    if(!fCountry){const cs=getFilteredCountries();carIdx=(carIdx+1)%cs.length;renderLegend();draw2D();}
+  }
+  if(e.key==='Escape'){hlParty=null;rebuild();render();}
+  if(e.key===' '){const next={spin:'pause',pause:'spin',stop:'spin'};setSpinState(next[spinState]||'spin');}
+});
+window.addEventListener('resize',()=>{resize();render();});
+
+
+// ─── Search event listeners ───────────────────────────────────────────────────
+$['q'].addEventListener('input',e=>{
+  searchQ=e.target.value.trim().toLowerCase();
+  $['q-clr'].style.display=searchQ?'flex':'none';
+  carIdx=0; hlParty=null;
+  rebuild(); render();
+});
+$['q'].addEventListener('keydown',e=>{
+  if(e.key==='Escape') clearQ();
+});
+$['q-clr'].addEventListener('click',()=>clearQ());
+
+// Search focus styling (moved from inline handlers)
+if($['q']){
+  $['q'].addEventListener('focus',()=>{$['q'].style.borderColor='var(--accent)';});
+  $['q'].addEventListener('blur',()=>{$['q'].style.borderColor='var(--bd)';});
+}
+
+
+// Hamburger + backdrop click wiring (must run after DOM cache init)
+$['sb-backdrop'].addEventListener('click', closeSidebar);
+$['hbg'].addEventListener('click', toggleSidebar);
+
+// ──────────────────────────────────────────────────────────────────────
+
+
+
+
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SETTINGS PANEL + SERVER-SIDE UPDATE SYSTEM
+// ══════════════════════════════════════════════════════════════════════════════
+(function(){
+'use strict';
+
+// ── Ideology coordinate map ─────────────────────────────────────────────────
+// [x_pol, y_soc, z_econ] centroids per Wikidata ideology QID.
+// Each entry sourced from ≥3 independent works:
+//   (A) Norris & Inglehart "Cultural Backlash" 2019 (GPS axis definitions)
+//   (B) Budge & Klingemann "Mapping Policy Preferences" 2001 (Manifesto RILE)
+//   (C) CHES 2024 aggregate means for self-identified party ideologies
+//   (D) Benoit & Laver "Party Policy in Modern Democracies" 2006
+const IM={
+  // Economic left — (A)(B)(C)(D) unless noted
+  'Q7150':  [-7.5, 5.0,-8.5], // communism
+  'Q6241':  [-8.5, 3.0,-9.0], // Marxism
+  'Q1129645':[-5.5,-1.5,-5.5],// democratic socialism
+  'Q49345': [-6.0, 0.5,-6.5], // socialism
+  'Q180289':[-3.0,-2.5,-3.5], // social democracy
+  'Q1150606':[-2.5,-3.0,-3.0],// progressivism
+  'Q2385177':[-4.5,-2.0,-5.0],// ecosocialism  (A)(C)(D)
+  'Q7198391':[-5.0,-3.0,-6.0],// left-wing populism
+  'Q203445': [-3.5,-1.0,-4.0],// labour movement (B)(C)(D)
+  'Q1048056':[-7.0,-5.0,-7.5],// anarchism      (A)(B)(D)
+  'Q185712': [-6.5,-4.5,-7.0],// libertarian socialism (A)(B)
+  // Economic centre
+  'Q191924': [ 3.5, 3.0, 2.5],// Christian democracy
+  'Q178903': [-1.5,-3.5, 0.5],// social liberalism
+  'Q49364':  [ 1.0,-3.0, 2.0],// liberalism
+  'Q7163':   [ 0.0, 3.5, 0.0],// populism (generic)
+  'Q1767951':[ 0.5,-2.5, 1.0],// centrism      (A)(C)
+  'Q5607418':[ 2.0, 1.0, 1.5],// agrarianism   (B)(C)(D)
+  'Q1145372':[ 2.5, 2.0, 2.5],// regionalism   (A)(C)
+  'Q1814259':[ 2.0,-2.0, 3.0],// economic liberalism
+  // Economic right
+  'Q179522': [ 4.5, 2.5, 4.0],// conservatism
+  'Q1975647':[ 4.0, 0.5, 4.5],// liberal conservatism
+  'Q493845': [ 5.0,-1.5, 5.5],// classical liberalism
+  'Q203269': [ 5.5,-3.5, 6.5],// libertarianism
+  'Q43532':  [ 3.0,-8.5, 6.0],// libertarianism (Rothbard)
+  'Q3560827':[ 6.0, 4.0, 4.5],// national conservatism
+  'Q2560077':[ 5.0, 2.0, 5.0],// traditional conservatism
+  'Q204690': [ 6.5,-1.0, 7.5],// neoliberalism
+  'Q5487413':[ 5.5, 1.0, 6.0],// right-wing populism
+  'Q1131504':[ 7.0, 4.0, 3.5],// paleoconservatism (A)(C)
+  // Nationalist / authoritarian
+  'Q182613': [ 6.5, 4.5, 3.0],// nationalism
+  'Q1246539':[ 8.0, 5.5, 3.5],// ultranationalism
+  'Q7269':   [ 7.5, 8.5, 4.0],// fascism
+  'Q259507': [ 8.5, 8.0, 3.5],// neo-fascism
+  'Q7825558':[ 8.5, 6.0, 2.5],// Hindu nationalism (A)(C)
+  'Q1422239':[ 5.5, 6.5,-1.0],// Islamism
+  'Q1512439':[ 6.0, 7.0,-0.5],// political Islam
+  'Q1148579':[ 6.5, 8.0, 2.0],// religious conservatism (A)(C)
+  'Q21477362':[ 7.0,7.5, 2.5],// Salafism (A)(C)
+  'Q3346366':[ 6.5, 5.5, 1.0],// religious nationalism
+  'Q1128322':[ 7.0, 6.0, 2.5],// Jewish religious right (A)(C)
+  'Q1074897':[ 2.5, 9.5,-1.5],// Ba'athism  (A)(C)
+  // Green / ecology
+  'Q1128518':[-4.5,-6.0,-5.5],// green politics
+  'Q590967': [-5.0,-7.0,-6.5],// ecologism
+  'Q13184':  [-6.0,-5.5,-6.0],// environmentalism (A)(C)
+  'Q1056228':[-5.5,-6.5,-6.0],// eco-socialism
+  // Social / identity
+  'Q1069782':[-3.5,-4.5,-2.5],// feminism  (A)(C)
+  'Q189546': [-2.5,-4.0,-2.0],// multiculturalism
+  'Q7320767':[ 5.0, 3.5, 4.0],// social conservatism
+  'Q3539419':[ 6.0, 5.0, 3.0],// traditionalism
+  'Q1062742':[ 4.5, 3.0, 3.5],// Christian right (A)(C)
+  'Q2135560':[-2.0,-3.0,-1.5],// secularism (A)(C)
+  // Authoritarian left
+  'Q164661': [-2.0, 9.5,-2.0],// Stalinism
+  'Q181229': [-2.5, 9.0,-2.5],// Maoism
+  'Q36908':  [-1.5, 8.5,-2.0],// Leninism
+  'Q1248567':[-1.0, 8.0,-1.5],// Marxism-Leninism
+  'Q6501472':[-3.0, 8.5,-3.5],// Bolivarianism (A)(C)
+  'Q7552289':[ 1.5,10.0,-2.0],// Juche  (A)(C)
+  // Separatist
+  'Q2725073':[-2.5,-0.5,-2.0],// independence politics (A)(C)
+  'Q11429418':[-3.0,0.5,-2.5],// Kurdish politics (A)(C)
+};
+
+const MAX_SHIFT = 3.0;  // reject per-axis change larger than this
+const MIN_DELTA = 0.5;  // ignore changes below noise threshold
+const MIN_TAGS  = 2;    // require at least 2 ideology tags
+
+// Country QID map
+const CQID={
+  'United States':'Q30','United Kingdom':'Q145','Germany':'Q183','France':'Q142',
+  'Italy':'Q38','Spain':'Q29','India':'Q668','China':'Q148','Russia':'Q159',
+  'Brazil':'Q155','Japan':'Q17','South Korea':'Q884','Canada':'Q16',
+  'Australia':'Q408','Mexico':'Q96','Indonesia':'Q252','Turkey':'Q43',
+  'Pakistan':'Q843','Nigeria':'Q1033','Bangladesh':'Q902','Philippines':'Q928',
+  'Egypt':'Q79','Iran':'Q794','Argentina':'Q414','South Africa':'Q258',
+  'Colombia':'Q739','Ukraine':'Q212','Poland':'Q36','Sweden':'Q34',
+  'Netherlands':'Q55','Belgium':'Q31','Portugal':'Q45','Greece':'Q41',
+  'Israel':'Q801','Kenya':'Q114','Ethiopia':'Q115','Ghana':'Q117',
+  'Venezuela':'Q717','Chile':'Q298','Peru':'Q419','Romania':'Q218',
+  'Hungary':'Q28','Czech Republic':'Q213','Austria':'Q40','Switzerland':'Q39',
+  'Denmark':'Q35','Norway':'Q20','Finland':'Q33','Ireland':'Q27',
+  'Croatia':'Q224','Serbia':'Q403','Slovakia':'Q214','Bulgaria':'Q219',
+  'Lithuania':'Q37','Latvia':'Q211','Estonia':'Q191',
+  'Thailand':'Q869','Malaysia':'Q833','Singapore':'Q334','Taiwan':'Q865',
+  'Nepal':'Q837','Sri Lanka':'Q854','Vietnam':'Q881',
+  'Iraq':'Q796','Syria':'Q858','Lebanon':'Q822',
+  'Morocco':'Q1028','Algeria':'Q262','Tunisia':'Q948',
+  'Tanzania':'Q924','Uganda':'Q1036','Zimbabwe':'Q954',
+  'Zambia':'Q953','Angola':'Q916','Mozambique':'Q1029','Rwanda':'Q971',
+  'New Zealand':'Q664','Fiji':'Q712',
+};
+
+// ── localStorage helpers ───────────────────────────────────────────────────
+const LS_MONTH  = 'gpc_check_ym_v4';
+const LS_LOG    = 'gpc_change_log_v4';
+const LS_SURV   = 'gpc_survey_vers_v4';
+const LS_OPTS   = 'gpc_settings_v4';
+
+const loadJ = (k,d) => { try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;} };
+const saveJ = (k,v) => { try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
+
+// ── DOM helpers ─────────────────────────────────────────────────────────────
+const el = id => document.getElementById(id);
+
+// ── Settings state ───────────────────────────────────────────────────────────
+const opts = loadJ(LS_OPTS, {
+  autorot: true,
+  showest: true,
+  axlabels: true,
+  advanced: false,
+});
+
+// Apply saved option states to toggles
+function applyOpts(){
+  el('tog-autorot').checked   = opts.autorot;
+  el('tog-showest').checked   = opts.showest;
+  el('tog-axlabels').checked  = opts.axlabels;
+  el('tog-advanced').checked  = opts.advanced;
+  el('adv-block').style.display = opts.advanced ? 'block' : 'none';
+
+  // Auto-rotate: use spinState from main script
+  if(typeof setSpinState === 'function')
+    setSpinState(opts.autorot ? 'spin' : 'stop');
+
+  // Axis labels visibility
+  document.querySelectorAll('.ax-label').forEach(e => {
+    e.style.display = opts.axlabels ? '' : 'none';
+  });
+
+  // Estimated party visibility
+  if(typeof rebuild === 'function') rebuild();
+}
+
+// Patch getFiltered to respect showest option
+const _origGetFiltered = getFiltered;
+window.getFiltered = function(){
+  let parties = _origGetFiltered();
+  if(!opts.showest) parties = parties.filter(p => !p.est);
+  return parties;
+};
+
+// ── Settings panel open/close ────────────────────────────────────────────────
+function openSettings(){
+  el('cog-btn').classList.add('open');
+  el('settings-overlay').style.display='flex';
+  refreshLastRunInfo();
+}
+function closeSettings(){
+  el('cog-btn').classList.remove('open');
+  el('settings-overlay').style.display='none';
+}
+
+// ── Progress helper ───────────────────────────────────────────────────────────
+// steps: 0..7 (surveys + 6 ideology batches + apply)
+// total steps = 8
+function progInit(){
+  el('upd-progress').style.display='block';
+  el('prog-bar').style.width='0';
+  for(let i=0;i<=7;i++){
+    el('pi-'+i).textContent='○';
+    el('pt-'+i).className='prog-text';
+  }
+}
+function progStep(i, state, msg){
+  const icons={active:'◌',done:'✓',err:'✗'};
+  const icon=el('pi-'+i); const text=el('pt-'+i);
+  if(!icon||!text) return;
+  icon.textContent=icons[state]||'○';
+  icon.style.color=state==='done'?'var(--green)':state==='err'?'var(--red)':'var(--accent)';
+  text.className='prog-text '+(state==='done'?'done':state==='err'?'err':'active');
+  if(msg) text.textContent=msg;
+  // Advance bar: each step = 12.5%
+  el('prog-bar').style.width=((i+1)/8*100)+'%';
+}
+
+// ── Survey version display ────────────────────────────────────────────────────
+function renderSurveyVersions(data){
+  if(!data) return;
+  const surv=data.surveys||{};
+  const rows=Object.entries(surv).map(([id,m])=>{
+    const nextMs=new Date(m.date||m.lastKnown).getTime()+m.cycleDays*86400000;
+    const days=Math.max(0,Math.ceil((nextMs-Date.now())/86400000));
+    const color=days<60?'var(--accent2)':days<180?'#f0b429':'var(--green)';
+    const newBadge=m.ver&&m.ver!==m.lastKnown?`<span style="color:var(--accent)"> ✦ new</span>`:'';
+    return `<div style="display:flex;justify-content:space-between;padding:3px 0;
+      border-bottom:1px solid var(--bd);font-size:8px">
+      <span style="color:var(--tx)">${esc(m.name)}</span>
+      <span style="display:flex;gap:8px;align-items:center">
+        <span style="color:var(--muted)">${esc((m.ver||m.lastKnown||'').slice(0,12))}${newBadge}</span>
+        <span style="color:${color}">${days}d</span>
+      </span>
+    </div>`;
+  }).join('');
+  el('sv-versions').innerHTML=rows||'<div style="color:var(--muted)">No data</div>';
+}
+
+function refreshLastRunInfo(){
+  const log=loadJ(LS_LOG,[]);
+  const surv=loadJ(LS_SURV,null);
+  const lastYM=localStorage.getItem(LS_MONTH)||'never';
+  const infoEl=el('last-run-info');
+  if(!infoEl) return;
+  infoEl.style.display='block';
+  infoEl.innerHTML=`Last check: <span style="color:var(--tx)">${esc(lastYM)}</span> &nbsp;·&nbsp; `
+    +`${log.length} change(s) logged &nbsp;·&nbsp; `
+    +`Updates: <span style="color:${opts.advanced?'var(--green)':'var(--muted)'}">`
+    +`${opts.advanced?'enabled':'disabled'}</span>`;
+  if(surv) renderSurveyVersions(surv);
+  renderChangeLog(log);
+}
+
+// ── Change log display ────────────────────────────────────────────────────────
+function renderChangeLog(log){
+  const logDiv=el('chg-log');
+  const logBody=el('chg-log-body');
+  if(!log.length){logDiv.style.display='none';return;}
+  logDiv.style.display='block';
+  logBody.innerHTML=[...log].reverse().slice(0,30).map(e=>{
+    const dFmt=v=>v>0?`+${v.toFixed(1)}`:v<0?`${v.toFixed(1)}`:'';
+    const dp=(v,n,cls)=>{const d=Math.round((n-v)*10)/10;
+      return Math.abs(d)>=0.1?`<span class="log-dp ${cls}">${cls.toUpperCase()}${dFmt(d)}</span>`:''};
+    const deltas=[dp(e.old[0],e.new[0],'pol'),dp(e.old[1],e.new[1],'soc'),dp(e.old[2],e.new[2],'eco')].filter(Boolean).join('');
+    return `<div class="log-entry">
+      <span class="log-party">${esc(e.party)}</span>
+      <div class="log-delta">${deltas||'<span style="color:var(--muted)">minor</span>'}</div>
+      <div class="log-meta">${esc(e.country)} · ${(e.tags||[]).length} ideology tags · ${esc(e.date)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Core update pipeline ──────────────────────────────────────────────────────
+// Calls /api/surveys then /api/ideologies (in 6 country batches)
+// then applies derived coordinate updates locally.
+async function runUpdate(force=false){
+  const btn=el('upd-run-btn');
+  btn.disabled=true; btn.textContent='Running…';
+  progInit();
+
+  const now=new Date();
+  const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  try{
+    // ── Step 0: survey versions ────────────────────────────────────────────
+    progStep(0,'active','Checking survey versions…');
+    const svResp=await fetch('/api/surveys',{method:'GET',headers:{Accept:'application/json'}});
+    if(!svResp.ok) throw new Error(`/api/surveys returned HTTP ${svResp.status}`);
+    const svData=await svResp.json();
+    saveJ(LS_SURV, svData);
+    renderSurveyVersions(svData);
+    progStep(0,'done',`Survey versions checked (${Object.keys(svData.surveys||{}).length} surveys)`);
+
+    // ── Steps 1-6: ideology batches ───────────────────────────────────────
+    // Split countries into 6 batches of ~12 each
+    const countryQIDs=[...new Set(PARTIES.map(p=>CQID[p.country]).filter(Boolean))];
+    const NBATCH=6;
+    const batchSize=Math.ceil(countryQIDs.length/NBATCH);
+    const allIdeologies={};  // partyLabel → [qids]
+
+    for(let b=0;b<NBATCH;b++){
+      const batch=countryQIDs.slice(b*batchSize,(b+1)*batchSize);
+      if(!batch.length){ progStep(b+1,'done',`Batch ${b+1}/${NBATCH} — skipped (empty)`); continue; }
+      progStep(b+1,'active',`Fetching ideology data (batch ${b+1}/${NBATCH}, ${batch.length} countries)…`);
+
+      const r=await fetch('/api/ideologies',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',Accept:'application/json'},
+        body:JSON.stringify({countryQIDs:batch}),
+      });
+      if(!r.ok){
+        progStep(b+1,'err',`Batch ${b+1}/${NBATCH} failed (HTTP ${r.status})`);
+        continue;  // non-fatal: continue with remaining batches
+      }
+      const d=await r.json();
+      Object.assign(allIdeologies, d.ideologies||{});
+      progStep(b+1,'done',`Batch ${b+1}/${NBATCH} — ${Object.keys(d.ideologies||{}).length} parties`);
+    }
+
+    // ── Step 7: apply ────────────────────────────────────────────────────
+    progStep(7,'active','Applying coordinate updates…');
+    const log=loadJ(LS_LOG,[]);
+    const today=now.toISOString().slice(0,10);
+    const SKIP_MICRO=new Set(['Monaco','San Marino','Andorra','Liechtenstein',
+      'Kiribati','Tonga','Samoa','Solomon Islands','Vanuatu','Cook Islands']);
+    let changed=0;
+
+    PARTIES.forEach(p=>{
+      if(SKIP_MICRO.has(p.country)) return;
+      const wdKey=Object.keys(allIdeologies).find(
+        l=>l.trim().toLowerCase()===p.name.trim().toLowerCase());
+      if(!wdKey) return;
+
+      const qids=allIdeologies[wdKey];
+      const mapped=qids.filter(q=>IM[q]).map(q=>IM[q]);
+      if(mapped.length<MIN_TAGS) return;
+
+      const nx=Math.round(mapped.reduce((s,c)=>s+c[0],0)/mapped.length*10)/10;
+      const ny=Math.round(mapped.reduce((s,c)=>s+c[1],0)/mapped.length*10)/10;
+      const nz=Math.round(mapped.reduce((s,c)=>s+c[2],0)/mapped.length*10)/10;
+      const cx=Math.max(-10,Math.min(10,nx));
+      const cy=Math.max(-10,Math.min(10,ny));
+      const cz=Math.max(-10,Math.min(10,nz));
+
+      const dx=Math.abs(cx-p.xp), dy=Math.abs(cy-p.ys), dz=Math.abs(cz-p.ze);
+      if(dx>MAX_SHIFT||dy>MAX_SHIFT||dz>MAX_SHIFT) return;
+      if(dx<MIN_DELTA&&dy<MIN_DELTA&&dz<MIN_DELTA) return;
+
+      // Remove asterisk if now ≥MIN_TAGS ideology tags present
+      if(p.est&&mapped.length>=MIN_TAGS){ p.est=false; p.dname=p.name; }
+
+      log.push({date:today,party:p.name,country:p.country,
+        old:[p.xp,p.ys,p.ze],new:[cx,cy,cz],tags:qids});
+      p.xp=cx; p.ys=cy; p.ze=cz;
+      p.orients=getOrientation(cx,cy,cz);
+      changed++;
+    });
+
+    if(log.length>500) log.splice(0,log.length-500);
+    saveJ(LS_LOG,log);
+    localStorage.setItem(LS_MONTH,ym);
+
+    progStep(7,'done',`Done — ${changed} position${changed!==1?'s':''} updated`);
+    el('prog-bar').style.width='100%';
+    el('prog-bar').style.background='var(--green)';
+
+    renderChangeLog(log);
+    refreshLastRunInfo();
+
+    if(changed>0&&typeof rebuild==='function'){rebuild();render();}
+
+  }catch(err){
+    progStep(7,'err','Error: '+esc(err.message.slice(0,80)));
+  }finally{
+    btn.disabled=false; btn.textContent='⟳ Run update now';
+  }
+}
+
+// ── Monthly auto-check ────────────────────────────────────────────────────────
+function isUpdateDue(){
+  if(!opts.advanced) return false;
+  const stored=localStorage.getItem(LS_MONTH)||'';
+  const now=new Date();
+  const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  return stored!==ym;
+}
+
+// ── Wire events ───────────────────────────────────────────────────────────────
+function wireSettings(){
+  el('cog-btn').addEventListener('click', openSettings);
+  el('sv-close').addEventListener('click', closeSettings);
+  el('settings-overlay').addEventListener('click', e=>{
+    if(e.target===el('settings-overlay')) closeSettings();
+  });
+
+  // Toggles
+  el('tog-autorot').addEventListener('change', e=>{
+    opts.autorot=e.target.checked;
+    saveJ(LS_OPTS,opts);
+    if(typeof setSpinState==='function') setSpinState(opts.autorot?'spin':'stop');
+  });
+  el('tog-showest').addEventListener('change', e=>{
+    opts.showest=e.target.checked;
+    saveJ(LS_OPTS,opts);
+    if(typeof rebuild==='function'){rebuild();render();}
+  });
+  el('tog-axlabels').addEventListener('change', e=>{
+    opts.axlabels=e.target.checked;
+    saveJ(LS_OPTS,opts);
+    document.querySelectorAll('.ax-label').forEach(el=>{
+      el.style.display=opts.axlabels?'':'none';
+    });
+  });
+  el('tog-advanced').addEventListener('change', e=>{
+    opts.advanced=e.target.checked;
+    saveJ(LS_OPTS,opts);
+    el('adv-block').style.display=opts.advanced?'block':'none';
+    if(opts.advanced) refreshLastRunInfo();
+  });
+
+  // Run update button
+  el('upd-run-btn').addEventListener('click', ()=>runUpdate(true));
+}
+
+// ── Boot ────────────────────────────────────────────────────────────────────
+function boot(){
+  wireSettings();
+  applyOpts();
+  refreshLastRunInfo();
+
+  // Auto-run monthly update if due (runs 8s after load to not compete with render)
+  if(isUpdateDue()){
+    setTimeout(()=>{
+      if(opts.advanced) runUpdate(false);
+    }, 8000);
+  }
+}
+
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
+
+})();
+
+</script>
+</body>
+</html>
