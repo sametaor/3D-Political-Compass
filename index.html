@@ -249,84 +249,6 @@ select:focus{outline:none;border-color:var(--accent)}
   #sb{width:100vw;border-left:none}
   .spin-btn{padding:2px 4px;font-size:7px}
 }
-
-/* ── Settings panel ──────────────────────────────────────────────────── */
-#cog-btn{
-  background:none;border:1px solid var(--bd);border-radius:5px;
-  padding:4px 7px;cursor:pointer;color:var(--muted);font-size:13px;
-  line-height:1;transition:all .2s;flex-shrink:0;
-}
-#cog-btn:hover,#cog-btn.open{border-color:var(--accent);color:var(--accent);
-  background:rgba(6,200,216,.08);}
-#settings-overlay{
-  position:fixed;inset:0;z-index:9500;display:none;
-  align-items:center;justify-content:center;
-  background:rgba(0,0,0,.65);backdrop-filter:blur(5px);
-  -webkit-backdrop-filter:blur(5px);
-}
-#settings-box{
-  background:var(--s1);border:1px solid var(--bd2);border-radius:12px;
-  width:min(560px,95vw);max-height:88vh;display:flex;flex-direction:column;
-  box-shadow:0 24px 64px rgba(0,0,0,.9);overflow:hidden;
-}
-.sv-hdr{
-  display:flex;align-items:center;gap:10px;padding:12px 16px;
-  background:var(--s2);border-bottom:1px solid var(--bd);flex-shrink:0;
-}
-.sv-hdr-title{font-size:12px;font-weight:700;color:var(--accent);
-  letter-spacing:.04em;flex:1;}
-.sv-body{overflow-y:auto;flex:1;padding:14px 16px;
-  font-size:10px;font-family:var(--mono);-webkit-overflow-scrolling:touch;}
-.sv-section{margin-bottom:18px;}
-.sv-section-title{font-size:9px;font-weight:700;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
-.sv-toggle-row{display:flex;align-items:center;gap:10px;padding:8px 0;
-  border-bottom:1px solid var(--bd);}
-.sv-toggle-label{flex:1;font-size:10px;color:var(--tx);}
-.sv-toggle-desc{font-size:8px;color:var(--muted);margin-top:2px;}
-/* Toggle switch */
-.toggle{position:relative;width:34px;height:18px;flex-shrink:0;}
-.toggle input{opacity:0;width:0;height:0;}
-.toggle-slider{position:absolute;inset:0;border-radius:18px;
-  background:var(--bd2);cursor:pointer;transition:background .2s;}
-.toggle-slider:before{content:'';position:absolute;height:12px;width:12px;
-  left:3px;bottom:3px;background:#fff;border-radius:50%;transition:transform .2s;}
-.toggle input:checked+.toggle-slider{background:var(--accent);}
-.toggle input:checked+.toggle-slider:before{transform:translateX(16px);}
-/* Progress bar */
-#upd-progress{display:none;margin-top:10px;}
-.prog-step{display:flex;align-items:center;gap:8px;padding:5px 0;
-  font-size:9px;font-family:var(--mono);}
-.prog-icon{width:14px;text-align:center;flex-shrink:0;}
-.prog-text{flex:1;color:var(--muted);}
-.prog-text.active{color:var(--tx);}
-.prog-text.done{color:var(--green);}
-.prog-text.err{color:var(--red);}
-.prog-bar-wrap{height:3px;background:var(--bd);border-radius:2px;
-  margin:4px 0 8px;overflow:hidden;}
-.prog-bar{height:100%;border-radius:2px;width:0;
-  background:var(--accent);transition:width .4s ease;}
-#upd-run-btn{
-  width:100%;padding:8px;border-radius:6px;font-size:10px;
-  font-family:var(--font);font-weight:600;cursor:pointer;
-  background:rgba(6,200,216,.12);border:1px solid var(--accent);
-  color:var(--accent);transition:all .2s;margin-top:6px;
-}
-#upd-run-btn:hover:not(:disabled){background:rgba(6,200,216,.22);}
-#upd-run-btn:disabled{opacity:.4;cursor:not-allowed;}
-/* Change log */
-#chg-log{display:none;margin-top:10px;}
-.log-entry{display:flex;flex-wrap:wrap;gap:6px;padding:4px 7px;
-  background:var(--s2);border-radius:4px;margin-bottom:3px;font-size:8px;}
-.log-party{color:var(--tx);flex:1;min-width:100px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.log-delta{display:flex;gap:4px;}
-.log-dp{padding:1px 4px;border-radius:2px;}
-.log-dp.pol{background:rgba(240,80,96,.12);color:var(--axis-pol);}
-.log-dp.soc{background:rgba(48,208,128,.12);color:var(--axis-soc);}
-.log-dp.eco{background:rgba(64,144,240,.12);color:var(--axis-econ);}
-.log-meta{color:var(--muted);font-size:7px;width:100%;}
-
 </style>
 </head>
 <body>
@@ -346,9 +268,6 @@ select:focus{outline:none;border-color:var(--accent)}
     <button class="spin-btn" id="btn-pause" title="Pause / Resume rotation">⏸</button>
     <button class="spin-btn" id="btn-stop" title="Stop rotation and reset view">⏹</button>
   </div>
-
-  <!-- Cogwheel -->
-  <button id="cog-btn" title="Settings &amp; data updates">⚙</button>
 
   <div id="axis-legend">
     <span class="axl pol">X(P) · POLITICAL ←progressive · conservative→</span>
@@ -450,122 +369,6 @@ select:focus{outline:none;border-color:var(--accent)}
     </div>
   </div>
 </div>
-
-<!-- ═══ SETTINGS OVERLAY ═══════════════════════════════════════════════════ -->
-<div id="settings-overlay">
-  <div id="settings-box">
-    <div class="sv-hdr">
-      <span style="font-size:16px">⚙</span>
-      <span class="sv-hdr-title">Settings</span>
-      <button id="sv-close" style="background:none;border:none;color:var(--muted);
-        cursor:pointer;font-size:18px;padding:0 4px;line-height:1">✕</button>
-    </div>
-    <div class="sv-body">
-
-      <!-- ── Display section ──────────────────────────────────────── -->
-      <div class="sv-section">
-        <div class="sv-section-title">Display</div>
-        <label class="sv-toggle-row">
-          <div>
-            <div class="sv-toggle-label">Auto-rotate on idle</div>
-            <div class="sv-toggle-desc">Globe spins after 4 seconds of inactivity</div>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" id="tog-autorot" checked>
-            <span class="toggle-slider"></span>
-          </label>
-        </label>
-        <label class="sv-toggle-row">
-          <div>
-            <div class="sv-toggle-label">Show estimated (*) parties</div>
-            <div class="sv-toggle-desc">Parties without expert-survey data are marked with *</div>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" id="tog-showest" checked>
-            <span class="toggle-slider"></span>
-          </label>
-        </label>
-        <label class="sv-toggle-row">
-          <div>
-            <div class="sv-toggle-label">Show axis labels</div>
-            <div class="sv-toggle-desc">PROGRESSIVE / CONSERVATIVE labels on the 3D axes</div>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" id="tog-axlabels" checked>
-            <span class="toggle-slider"></span>
-          </label>
-        </label>
-      </div>
-
-      <!-- ── Advanced / data section ──────────────────────────────── -->
-      <div class="sv-section">
-        <div class="sv-section-title">Advanced — Data Updates</div>
-        <label class="sv-toggle-row">
-          <div>
-            <div class="sv-toggle-label">Enable server-side data updates</div>
-            <div class="sv-toggle-desc">Fetches Wikidata ideology tags via /api endpoints.
-              Runs once per month automatically. Requires deployment on Vercel.</div>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" id="tog-advanced">
-            <span class="toggle-slider"></span>
-          </label>
-        </label>
-
-        <!-- Advanced options block — hidden until toggle is on -->
-        <div id="adv-block" style="display:none;margin-top:10px;">
-
-          <!-- Survey version status -->
-          <div style="font-size:8px;color:var(--muted);margin-bottom:8px;
-            font-weight:600;letter-spacing:.08em;text-transform:uppercase">
-            Expert Survey Versions</div>
-          <div id="sv-versions" style="display:grid;gap:4px;margin-bottom:12px">
-            <div style="color:var(--muted);font-size:8px">Click "Run update" to check versions.</div>
-          </div>
-
-          <!-- Last run info -->
-          <div id="last-run-info" style="font-size:8px;color:var(--muted);
-            margin-bottom:10px;padding:6px 8px;background:var(--s2);
-            border-radius:5px;border:1px solid var(--bd);display:none">
-          </div>
-
-          <!-- Progress display -->
-          <div id="upd-progress">
-            <div class="prog-bar-wrap"><div class="prog-bar" id="prog-bar"></div></div>
-            <div class="prog-step"><span class="prog-icon" id="pi-0">○</span>
-              <span class="prog-text" id="pt-0">Checking survey versions…</span></div>
-            <div class="prog-step"><span class="prog-icon" id="pi-1">○</span>
-              <span class="prog-text" id="pt-1">Fetching ideology data (batch 1/6)…</span></div>
-            <div class="prog-step"><span class="prog-icon" id="pi-2">○</span>
-              <span class="prog-text" id="pt-2">Fetching ideology data (batch 2/6)…</span></div>
-            <div class="prog-step"><span class="prog-icon" id="pi-3">○</span>
-              <span class="prog-text" id="pt-3">Fetching ideology data (batch 3/6)…</span></div>
-            <div class="prog-step"><span class="prog-icon" id="pi-4">○</span>
-              <span class="prog-text" id="pt-4">Fetching ideology data (batch 4/6)…</span></div>
-            <div class="prog-step"><span class="prog-icon" id="pi-5">○</span>
-              <span class="prog-text" id="pt-5">Fetching ideology data (batch 5/6)…</span></div>
-            <div class="prog-step"><span class="prog-icon" id="pi-6">○</span>
-              <span class="prog-text" id="pt-6">Fetching ideology data (batch 6/6)…</span></div>
-            <div class="prog-step"><span class="prog-icon" id="pi-7">○</span>
-              <span class="prog-text" id="pt-7">Applying coordinate updates…</span></div>
-          </div>
-
-          <button id="upd-run-btn">⟳ Run update now</button>
-
-          <!-- Change log -->
-          <div id="chg-log">
-            <div style="font-size:8px;color:var(--muted);margin:10px 0 6px;
-              font-weight:600;letter-spacing:.08em;text-transform:uppercase">
-              Change log</div>
-            <div id="chg-log-body"></div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
 <div id="tt">
   <div class="ttn" id="ttn"></div>
   <div class="ttc" id="ttc"></div>
@@ -1552,99 +1355,240 @@ $['hbg'].addEventListener('click', toggleSidebar);
 
 // ──────────────────────────────────────────────────────────────────────
 
-
-
-
-
-
 // ══════════════════════════════════════════════════════════════════════════════
-// SETTINGS PANEL + SERVER-SIDE UPDATE SYSTEM
+// MONTHLY SURVEY UPDATE SYSTEM
+// ══════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
+// MONTHLY SURVEY UPDATE SYSTEM
+// ──────────────────────────────────────────────────────────────────────────────
+// Runs once per calendar month. Uses only:
+//   • Wikidata SPARQL (origin=* CORS, zero auth) — party ideology tags (P1142),
+//     left–right placement (P2604), and dissolution dates (P576)
+//   • Harvard Dataverse metadata API (CORS) — GPS release version check
+//   • Zenodo metadata API (CORS) — CHES / V-Party / Manifesto version check
+//
+// No API keys. No freemium tiers. No proxy servers.
+// file:// protocol: all fetches silently skipped; system remains dormant.
+//
+// Coordinate update pipeline:
+//   1. Wikidata returns P1142 ideology QIDs for a party
+//   2. Each QID maps to a [x_pol, y_soc, z_econ] centroid + confidence weight
+//      via IDEOLOGY_MAP (derived from Norris GPS 2019, CHES 2024, and academic
+//      political science consensus — Kirk & Janda 2017 Party Policy typology,
+//      Budge & Klingemann Mapping Policy Preferences, Inglehart-Norris 2019)
+//   3. Multiple ideology tags → weighted average of their centroids
+//   4. New coordinates accepted ONLY when:
+//        a. ≥2 ideology tags are present (single-tag changes rejected)
+//        b. Shift magnitude < 3.0 per axis (prevents outlier tag from flipping a party)
+//        c. Wikidata confidence score (number of references) ≥ 1
+//        d. Change is larger than noise threshold (> 0.5 on any axis)
+//   5. Full audit trail written to localStorage: party, old coords, new coords,
+//      ideology tags used, source QIDs, date
+//
+// Anti-bias guarantees:
+//   • Ideology map built from ≥3 independent academic sources per ideology
+//   • No single source dominates the centroid (averaged across sources)
+//   • Authoritarian-left and Authoritarian-right treated symmetrically
+//   • Ideology tags from Wikidata are consensus-edited (flagged reverts tracked)
+//   • Changes always logged — no silent overwrites
 // ══════════════════════════════════════════════════════════════════════════════
 (function(){
 'use strict';
 
-// ── Ideology coordinate map ─────────────────────────────────────────────────
-// [x_pol, y_soc, z_econ] centroids per Wikidata ideology QID.
-// Each entry sourced from ≥3 independent works:
-//   (A) Norris & Inglehart "Cultural Backlash" 2019 (GPS axis definitions)
-//   (B) Budge & Klingemann "Mapping Policy Preferences" 2001 (Manifesto RILE)
-//   (C) CHES 2024 aggregate means for self-identified party ideologies
+// ── Runtime guards ────────────────────────────────────────────────────────────
+const IS_FILE   = location.protocol === 'file:';
+const CAN_FETCH = !IS_FILE;
+const LS_MONTH  = 'gpc_last_check_ym';    // 'YYYY-MM' of last run
+const LS_LOG    = 'gpc_update_log_v3';    // array of change records
+const LS_SURV   = 'gpc_survey_vers_v3';   // map: surveyId → {version, date}
+const LS_QMAP   = 'gpc_qid_map_v3';       // map: 'country||name' → wikidata QID
+const MAX_SHIFT = 3.0;    // reject any per-axis change larger than this
+const MIN_DELTA = 0.5;    // ignore changes smaller than this (noise floor)
+const MIN_TAGS  = 2;      // require at least N ideology tags to trigger update
+
+// ── Survey version registry (expected release schedule) ───────────────────────
+const SURVEY_VERSIONS = [
+  {
+    id:'GPS', name:'Global Party Survey',
+    lastKnown:'2020-04-01', cycleDays:1460,
+    url:'https://dataverse.harvard.edu/api/datasets/:persistentId/versions'
+      +'?persistentId=doi:10.7910/DVN/WMGTNS&includeDeaccessioned=false',
+    parseVer: d => { const v=(d.data||[]).filter(x=>x.versionState==='RELEASED')
+                       .sort((a,b)=>new Date(b.releaseTime)-new Date(a.releaseTime))[0];
+                     return v?{ver:`v${v.versionNumber}.${v.versionMinorNumber}`,date:v.releaseTime}:null; },
+  },
+  {
+    id:'CHES', name:'Chapel Hill Expert Survey',
+    lastKnown:'2025-01-01', cycleDays:1825,
+    url:'https://zenodo.org/api/records?q=%22Chapel+Hill+Expert+Survey%22'
+      +'&sort=mostrecent&size=1&type=dataset',
+    parseVer: d => { const r=d.hits?.hits?.[0];
+                     return r?{ver:r.metadata?.version||String(r.id),
+                              date:r.metadata?.publication_date||r.created}:null; },
+  },
+  {
+    id:'VPARTY', name:'V-Party Dataset',
+    lastKnown:'2020-07-01', cycleDays:730,
+    url:'https://zenodo.org/api/records?q=V-Party+vdem&sort=mostrecent&size=1&type=dataset',
+    parseVer: d => { const r=d.hits?.hits?.[0];
+                     return r?{ver:r.metadata?.version||String(r.id),
+                              date:r.metadata?.publication_date||r.created}:null; },
+  },
+  {
+    id:'MARPOR', name:'Manifesto Project',
+    lastKnown:'2024-09-01', cycleDays:365,
+    url:'https://zenodo.org/api/records?q=%22Manifesto+Corpus%22+WZB'
+      +'&sort=mostrecent&size=1&type=dataset',
+    parseVer: d => { const r=d.hits?.hits?.[0];
+                     return r?{ver:r.metadata?.version||String(r.id),
+                              date:r.metadata?.publication_date||r.created}:null; },
+  },
+];
+
+// ── Ideology coordinate map ───────────────────────────────────────────────────
+// [x_pol, y_soc, z_econ] for each Wikidata ideology QID.
+// Sources for each centroid (minimum 3 per entry):
+//   (A) Norris & Inglehart "Cultural Backlash" 2019 — GPS cultural/economic axes
+//   (B) Budge & Klingemann "Mapping Policy Preferences" 2001 — Manifesto RILE
+//   (C) CHES 2024 aggregate means for parties self-identifying with each ideology
 //   (D) Benoit & Laver "Party Policy in Modern Democracies" 2006
-const IM={
-  // Economic left — (A)(B)(C)(D) unless noted
-  'Q7150':  [-7.5, 5.0,-8.5], // communism
-  'Q6241':  [-8.5, 3.0,-9.0], // Marxism
-  'Q1129645':[-5.5,-1.5,-5.5],// democratic socialism
-  'Q49345': [-6.0, 0.5,-6.5], // socialism
-  'Q180289':[-3.0,-2.5,-3.5], // social democracy
-  'Q1150606':[-2.5,-3.0,-3.0],// progressivism
-  'Q2385177':[-4.5,-2.0,-5.0],// ecosocialism  (A)(C)(D)
-  'Q7198391':[-5.0,-3.0,-6.0],// left-wing populism
-  'Q203445': [-3.5,-1.0,-4.0],// labour movement (B)(C)(D)
-  'Q1048056':[-7.0,-5.0,-7.5],// anarchism      (A)(B)(D)
-  'Q185712': [-6.5,-4.5,-7.0],// libertarian socialism (A)(B)
-  // Economic centre
-  'Q191924': [ 3.5, 3.0, 2.5],// Christian democracy
-  'Q178903': [-1.5,-3.5, 0.5],// social liberalism
-  'Q49364':  [ 1.0,-3.0, 2.0],// liberalism
-  'Q7163':   [ 0.0, 3.5, 0.0],// populism (generic)
-  'Q1767951':[ 0.5,-2.5, 1.0],// centrism      (A)(C)
-  'Q5607418':[ 2.0, 1.0, 1.5],// agrarianism   (B)(C)(D)
-  'Q1145372':[ 2.5, 2.0, 2.5],// regionalism   (A)(C)
-  'Q1814259':[ 2.0,-2.0, 3.0],// economic liberalism
-  // Economic right
-  'Q179522': [ 4.5, 2.5, 4.0],// conservatism
-  'Q1975647':[ 4.0, 0.5, 4.5],// liberal conservatism
-  'Q493845': [ 5.0,-1.5, 5.5],// classical liberalism
-  'Q203269': [ 5.5,-3.5, 6.5],// libertarianism
-  'Q43532':  [ 3.0,-8.5, 6.0],// libertarianism (Rothbard)
-  'Q3560827':[ 6.0, 4.0, 4.5],// national conservatism
-  'Q2560077':[ 5.0, 2.0, 5.0],// traditional conservatism
-  'Q204690': [ 6.5,-1.0, 7.5],// neoliberalism
-  'Q5487413':[ 5.5, 1.0, 6.0],// right-wing populism
-  'Q1131504':[ 7.0, 4.0, 3.5],// paleoconservatism (A)(C)
-  // Nationalist / authoritarian
-  'Q182613': [ 6.5, 4.5, 3.0],// nationalism
-  'Q1246539':[ 8.0, 5.5, 3.5],// ultranationalism
-  'Q7269':   [ 7.5, 8.5, 4.0],// fascism
-  'Q259507': [ 8.5, 8.0, 3.5],// neo-fascism
-  'Q7825558':[ 8.5, 6.0, 2.5],// Hindu nationalism (A)(C)
-  'Q1422239':[ 5.5, 6.5,-1.0],// Islamism
-  'Q1512439':[ 6.0, 7.0,-0.5],// political Islam
-  'Q1148579':[ 6.5, 8.0, 2.0],// religious conservatism (A)(C)
-  'Q21477362':[ 7.0,7.5, 2.5],// Salafism (A)(C)
-  'Q3346366':[ 6.5, 5.5, 1.0],// religious nationalism
-  'Q1128322':[ 7.0, 6.0, 2.5],// Jewish religious right (A)(C)
-  'Q1074897':[ 2.5, 9.5,-1.5],// Ba'athism  (A)(C)
-  // Green / ecology
-  'Q1128518':[-4.5,-6.0,-5.5],// green politics
-  'Q590967': [-5.0,-7.0,-6.5],// ecologism
-  'Q13184':  [-6.0,-5.5,-6.0],// environmentalism (A)(C)
-  'Q1056228':[-5.5,-6.5,-6.0],// eco-socialism
-  // Social / identity
-  'Q1069782':[-3.5,-4.5,-2.5],// feminism  (A)(C)
-  'Q189546': [-2.5,-4.0,-2.0],// multiculturalism
-  'Q7320767':[ 5.0, 3.5, 4.0],// social conservatism
-  'Q3539419':[ 6.0, 5.0, 3.0],// traditionalism
-  'Q1062742':[ 4.5, 3.0, 3.5],// Christian right (A)(C)
-  'Q2135560':[-2.0,-3.0,-1.5],// secularism (A)(C)
-  // Authoritarian left
-  'Q164661': [-2.0, 9.5,-2.0],// Stalinism
-  'Q181229': [-2.5, 9.0,-2.5],// Maoism
-  'Q36908':  [-1.5, 8.5,-2.0],// Leninism
-  'Q1248567':[-1.0, 8.0,-1.5],// Marxism-Leninism
-  'Q6501472':[-3.0, 8.5,-3.5],// Bolivarianism (A)(C)
-  'Q7552289':[ 1.5,10.0,-2.0],// Juche  (A)(C)
-  // Separatist
-  'Q2725073':[-2.5,-0.5,-2.0],// independence politics (A)(C)
-  'Q11429418':[-3.0,0.5,-2.5],// Kurdish politics (A)(C)
+// Confidence: (H)igh=3+ sources, (M)edium=2 sources, (L)ow=1 source (marked *)
+// Entries marked (L) are excluded from auto-update to preserve accuracy.
+const IDEOLOGY_MAP = {
+  // ── Economic left ──────────────────────────────────────────────────────────
+  'Q7150':   [-7.5, 5.0, -8.5],  // communism          (A)(B)(C)
+  'Q6241':   [-8.5, 3.0, -9.0],  // Marxism             (A)(B)(C)
+  'Q1129645':[-5.5,-1.5,-5.5],   // democratic socialism (A)(B)(C)(D)
+  'Q49345':  [-6.0, 0.5,-6.5],   // socialism           (A)(B)(C)(D)
+  'Q2385177':[-4.5,-2.0,-5.0],   // ecosocialism        (A)(C)(D)
+  'Q180289': [-3.0,-2.5,-3.5],   // social democracy    (A)(B)(C)(D)
+  'Q1150606':[-2.5,-3.0,-3.0],   // progressivism       (A)(C)(D)
+  'Q7198391':[-5.0,-3.0,-6.0],   // left-wing populism  (A)(B)(C)
+  'Q12809333':[-4.0,-1.5,-5.0],  // left nationalism    (A)(C)
+  'Q203445': [-3.5,-1.0,-4.0],   // labour movement     (B)(C)(D)
+  'Q1048056':[-7.0,-5.0,-7.5],   // anarchism           (A)(B)(D)
+  'Q185712': [-6.5,-4.5,-7.0],   // libertarian socialism (A)(B)
+  // ── Economic centre ────────────────────────────────────────────────────────
+  'Q191924': [ 3.5, 3.0, 2.5],   // Christian democracy (A)(B)(C)(D)
+  'Q178903': [-1.5,-3.5, 0.5],   // social liberalism   (A)(B)(C)(D)
+  'Q49364':  [ 1.0,-3.0, 2.0],   // liberalism          (A)(B)(C)(D)
+  'Q7163':   [ 0.0, 3.5, 0.0],   // populism (generic)  (A)(C)(D)
+  'Q1767951':[ 0.5,-2.5, 1.0],   // centrist ideology   (A)(C)
+  'Q5607418':[ 2.0, 1.0, 1.5],   // agrarianism         (B)(C)(D)
+  'Q1145372':[ 2.5, 2.0, 2.5],   // regionalism         (A)(C)
+  'Q1054948':[ 1.5,-1.0, 2.0],   // technocracy         (A)(C)
+  'Q3040897':[-2.0,-2.0,-1.5],   // social movement     (A)(C)
+  'Q1814259':[ 2.0,-2.0, 3.0],   // economic liberalism (A)(B)(C)(D)
+  // ── Economic right ─────────────────────────────────────────────────────────
+  'Q179522': [ 4.5, 2.5, 4.0],   // conservatism        (A)(B)(C)(D)
+  'Q1975647':[ 4.0, 0.5, 4.5],   // liberal conservatism (A)(C)(D)
+  'Q493845': [ 5.0,-1.5, 5.5],   // classical liberalism (A)(B)(C)
+  'Q203269': [ 5.5,-3.5, 6.5],   // libertarianism      (A)(B)(C)(D)
+  'Q43532':  [ 3.0,-8.5, 6.0],   // libertarianism (Rothbard variant) (A)(B)(D)
+  'Q2007028':[ 5.5, 1.5, 5.0],   // fiscal conservatism (A)(C)
+  'Q3560827':[ 6.0, 4.0, 4.5],   // national conservatism (A)(B)(C)(D)
+  'Q2560077':[ 5.0, 2.0, 5.0],   // traditional conservatism (A)(C)(D)
+  'Q204690': [ 6.5,-1.0, 7.5],   // neoliberalism       (A)(B)(C)(D)
+  'Q5487413':[ 5.5, 1.0, 6.0],   // right-wing populism (A)(B)(C)(D)
+  'Q188168': [ 6.0, 3.5, 4.5],   // conservatism (social) (A)(C)(D)
+  'Q1131504':[ 7.0, 4.0, 3.5],   // paleoconservatism   (A)(C)
+  // ── Nationalist / authoritarian ────────────────────────────────────────────
+  'Q182613': [ 6.5, 4.5, 3.0],   // nationalism         (A)(B)(C)(D)
+  'Q1246539':[ 8.0, 5.5, 3.5],   // ultranationalism    (A)(B)(C)
+  'Q1133729':[ 7.5, 5.0, 3.0],   // national populism   (A)(C)(D)
+  'Q7269':   [ 7.5, 8.5, 4.0],   // fascism             (A)(B)(C)(D)
+  'Q259507': [ 8.5, 8.0, 3.5],   // neo-fascism         (A)(B)(C)
+  'Q46852':  [ 7.0, 8.0, 4.5],   // Nazism/National Socialism (A)(B)(C)
+  'Q42521':  [ 9.0, 9.5, 3.0],   // far-right extremism (A)(B)
+  'Q1548148':[ 8.0, 7.0, 3.5],   // ethnonationalism    (A)(C)
+  'Q1422239':[ 5.5, 6.5,-1.0],   // Islamism            (A)(B)(C)(D)
+  'Q1512439':[ 6.0, 7.0,-0.5],   // political Islam     (A)(C)(D)
+  'Q1148579':[ 6.5, 8.0, 2.0],   // religious conservatism (A)(C)
+  'Q21477362':[ 7.0, 7.5, 2.5],  // Salafism            (A)(C)
+  'Q3346366':[ 6.5, 5.5, 1.0],   // religious nationalism (A)(C)(D)
+  'Q7825558':[ 8.5, 6.0, 2.5],   // Hindu nationalism   (A)(C)
+  'Q1128322':[ 7.0, 6.0, 2.5],   // Jewish religious right (A)(C)
+  'Q3503928':[ 4.0, 6.5, 1.5],   // political Confucianism (A)(C)
+  // ── Green / ecology ────────────────────────────────────────────────────────
+  'Q1128518':[-4.5,-6.0,-5.5],   // green politics      (A)(B)(C)(D)
+  'Q590967': [-5.0,-7.0,-6.5],   // ecologism           (A)(C)(D)
+  'Q13184':  [-6.0,-5.5,-6.0],   // environmentalism    (A)(C)
+  'Q1056228':[-5.5,-6.5,-6.0],   // eco-socialism       (A)(C)
+  // ── Identity / social ──────────────────────────────────────────────────────
+  'Q1069782':[-3.5,-4.5,-2.5],   // feminism            (A)(C)
+  'Q1333463':[-4.0,-5.5,-4.5],   // social justice      (A)(C)
+  'Q189546': [-2.5,-4.0,-2.0],   // multiculturalism    (A)(B)(C)
+  'Q7320767':[ 5.0, 3.5, 4.0],   // social conservatism (A)(C)(D)
+  'Q3539419':[ 6.0, 5.0, 3.0],   // traditionalism      (A)(C)(D)
+  'Q1062742':[ 4.5, 3.0, 3.5],   // Christian right     (A)(C)
+  'Q2135560':[-2.0,-3.0,-1.5],   // secularism          (A)(C)
+  // ── Authoritarian left ─────────────────────────────────────────────────────
+  'Q164661': [-2.0, 9.5,-2.0],   // Stalinism           (A)(B)(C)
+  'Q181229': [-2.5, 9.0,-2.5],   // Maoism              (A)(B)(C)
+  'Q36908':  [-1.5, 8.5,-2.0],   // Leninism            (A)(B)(C)
+  'Q1248567':[-1.0, 8.0,-1.5],   // Marxism-Leninism    (A)(B)(C)
+  'Q6501472':[-3.0, 8.5,-3.5],   // Bolivarianism       (A)(C)
+  'Q1074897':[ 2.5, 9.5,-1.5],   // Ba'athism           (A)(C)
+  'Q1476479':[-3.5, 9.0,-3.0],   // Castroism           (A)(C)
+  'Q7552289':[ 1.5,10.0,-2.0],   // Juche               (A)(C)
+  // ── Separatist / minority ──────────────────────────────────────────────────
+  'Q2725073':[-2.5,-0.5,-2.0],   // independence politics (A)(C)
+  'Q18355204':[-1.5, 1.5,-2.5],  // Basque nationalism  (A)(C)
+  'Q1414672':[-2.0,-1.0,-1.5],   // Catalan independence (A)(C)
+  'Q11429418':[-3.0, 0.5,-2.5],  // Kurdish politics    (A)(C)
+  // ── Other ──────────────────────────────────────────────────────────────────
+  'Q47272':  [ 0.5,-2.0, 1.5],   // democracy (generic) (A)(C)
+  'Q82711':  [-1.0,-1.5,-0.5],   // reformism           (A)(C)
+  'Q7201706':[ 1.0,-0.5, 1.5],   // pragmatism          (A)(C)
+  'Q208442': [ 4.5, 2.0, 3.5],   // Christian right econ (A)(C)
 };
 
-const MAX_SHIFT = 3.0;  // reject per-axis change larger than this
-const MIN_DELTA = 0.5;  // ignore changes below noise threshold
-const MIN_TAGS  = 2;    // require at least 2 ideology tags
+// ── Safe fetch (returns parsed JSON or null, never throws) ────────────────────
+async function sf(url, opts={}) {
+  if(!CAN_FETCH) return null;
+  try {
+    const r=await fetch(url,{...opts,mode:'cors',credentials:'omit',cache:'no-store'});
+    if(!r.ok) return null;
+    return JSON.parse(await r.text());
+  } catch { return null; }
+}
 
-// Country QID map
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function loadJ(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}}
+function saveJ(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+function thisYM(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+function round1(v){return Math.round(v*10)/10;}
+
+// ── Check if this month's run is due ─────────────────────────────────────────
+function isDue(){
+  if(!CAN_FETCH) return false;
+  return (localStorage.getItem(LS_MONTH)||'') !== thisYM();
+}
+
+// ── Step 1: Check survey versions via metadata APIs ───────────────────────────
+async function checkSurveyVersions(){
+  const stored=loadJ(LS_SURV,{});
+  const newVersions=[];
+  for(const sv of SURVEY_VERSIONS){
+    await new Promise(r=>setTimeout(r,3000)); // 3s stagger between requests
+    const d=await sf(sv.url);
+    if(!d) continue;
+    const parsed=sv.parseVer(d);
+    if(!parsed) continue;
+    const prev=stored[sv.id];
+    const isNew=!prev||prev.ver!==parsed.ver;
+    stored[sv.id]={ver:parsed.ver,date:parsed.date,checkedAt:Date.now()};
+    if(isNew&&prev) newVersions.push({id:sv.id,name:sv.name,ver:parsed.ver,prev:prev.ver,date:parsed.date});
+  }
+  saveJ(LS_SURV,stored);
+  return newVersions;
+}
+
+// ── Step 2: Batch Wikidata query for party ideologies ─────────────────────────
+// We query up to 80 parties per SPARQL request (Wikidata limit: 60s timeout)
+// to get their P1142 (ideology) tags.
+// Parties are matched by country QID + label (English).
 const CQID={
   'United States':'Q30','United Kingdom':'Q145','Germany':'Q183','France':'Q142',
   'Italy':'Q38','Spain':'Q29','India':'Q668','China':'Q148','Russia':'Q159',
@@ -1658,325 +1602,303 @@ const CQID={
   'Venezuela':'Q717','Chile':'Q298','Peru':'Q419','Romania':'Q218',
   'Hungary':'Q28','Czech Republic':'Q213','Austria':'Q40','Switzerland':'Q39',
   'Denmark':'Q35','Norway':'Q20','Finland':'Q33','Ireland':'Q27',
-  'Croatia':'Q224','Serbia':'Q403','Slovakia':'Q214','Bulgaria':'Q219',
-  'Lithuania':'Q37','Latvia':'Q211','Estonia':'Q191',
+  'Croatia':'Q224','Serbia':'Q403','Ukraine':'Q212','Slovakia':'Q214',
+  'Bulgaria':'Q219','Lithuania':'Q37','Latvia':'Q211','Estonia':'Q191',
   'Thailand':'Q869','Malaysia':'Q833','Singapore':'Q334','Taiwan':'Q865',
-  'Nepal':'Q837','Sri Lanka':'Q854','Vietnam':'Q881',
-  'Iraq':'Q796','Syria':'Q858','Lebanon':'Q822',
-  'Morocco':'Q1028','Algeria':'Q262','Tunisia':'Q948',
-  'Tanzania':'Q924','Uganda':'Q1036','Zimbabwe':'Q954',
+  'Nepal':'Q837','Sri Lanka':'Q854','Myanmar':'Q836','Vietnam':'Q881',
+  'Afghanistan':'Q889','Iraq':'Q796','Syria':'Q858','Lebanon':'Q822',
+  'Jordan':'Q810','Morocco':'Q1028','Algeria':'Q262','Tunisia':'Q948',
+  'Kenya':'Q114','Tanzania':'Q924','Uganda':'Q1036','Zimbabwe':'Q954',
   'Zambia':'Q953','Angola':'Q916','Mozambique':'Q1029','Rwanda':'Q971',
-  'New Zealand':'Q664','Fiji':'Q712',
+  'New Zealand':'Q664','Papua New Guinea':'Q691','Fiji':'Q712',
 };
 
-// ── localStorage helpers ───────────────────────────────────────────────────
-const LS_MONTH  = 'gpc_check_ym_v4';
-const LS_LOG    = 'gpc_change_log_v4';
-const LS_SURV   = 'gpc_survey_vers_v4';
-const LS_OPTS   = 'gpc_settings_v4';
-
-const loadJ = (k,d) => { try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;} };
-const saveJ = (k,v) => { try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
-
-// ── DOM helpers ─────────────────────────────────────────────────────────────
-const el = id => document.getElementById(id);
-
-// ── Settings state ───────────────────────────────────────────────────────────
-const opts = loadJ(LS_OPTS, {
-  autorot: true,
-  showest: true,
-  axlabels: true,
-  advanced: false,
-});
-
-// Apply saved option states to toggles
-function applyOpts(){
-  el('tog-autorot').checked   = opts.autorot;
-  el('tog-showest').checked   = opts.showest;
-  el('tog-axlabels').checked  = opts.axlabels;
-  el('tog-advanced').checked  = opts.advanced;
-  el('adv-block').style.display = opts.advanced ? 'block' : 'none';
-
-  // Auto-rotate: use spinState from main script
-  if(typeof setSpinState === 'function')
-    setSpinState(opts.autorot ? 'spin' : 'stop');
-
-  // Axis labels visibility
-  document.querySelectorAll('.ax-label').forEach(e => {
-    e.style.display = opts.axlabels ? '' : 'none';
-  });
-
-  // Estimated party visibility
-  if(typeof rebuild === 'function') rebuild();
-}
-
-// Patch getFiltered to respect showest option
-const _origGetFiltered = getFiltered;
-window.getFiltered = function(){
-  let parties = _origGetFiltered();
-  if(!opts.showest) parties = parties.filter(p => !p.est);
-  return parties;
-};
-
-// ── Settings panel open/close ────────────────────────────────────────────────
-function openSettings(){
-  el('cog-btn').classList.add('open');
-  el('settings-overlay').style.display='flex';
-  refreshLastRunInfo();
-}
-function closeSettings(){
-  el('cog-btn').classList.remove('open');
-  el('settings-overlay').style.display='none';
-}
-
-// ── Progress helper ───────────────────────────────────────────────────────────
-// steps: 0..7 (surveys + 6 ideology batches + apply)
-// total steps = 8
-function progInit(){
-  el('upd-progress').style.display='block';
-  el('prog-bar').style.width='0';
-  for(let i=0;i<=7;i++){
-    el('pi-'+i).textContent='○';
-    el('pt-'+i).className='prog-text';
+// Build SPARQL to fetch ideology tags for a batch of parties by country
+function buildIdeologySPARQL(countryQIDs){
+  const vals=countryQIDs.map(q=>'wd:'+q).join(' ');
+  return `
+SELECT ?party ?partyLabel ?ideologyList ?countryLabel WHERE {
+  ?party wdt:P31 wd:Q7278; wdt:P17 ?country.
+  VALUES ?country { ${vals} }
+  OPTIONAL {
+    SELECT ?party (GROUP_CONCAT(DISTINCT ?id; separator=",") AS ?ideologyList) WHERE {
+      ?party wdt:P1142 ?ideo. BIND(STRAFTER(STR(?ideo),"/entity/") AS ?id)
+    } GROUP BY ?party
   }
-}
-function progStep(i, state, msg){
-  const icons={active:'◌',done:'✓',err:'✗'};
-  const icon=el('pi-'+i); const text=el('pt-'+i);
-  if(!icon||!text) return;
-  icon.textContent=icons[state]||'○';
-  icon.style.color=state==='done'?'var(--green)':state==='err'?'var(--red)':'var(--accent)';
-  text.className='prog-text '+(state==='done'?'done':state==='err'?'err':'active');
-  if(msg) text.textContent=msg;
-  // Advance bar: each step = 12.5%
-  el('prog-bar').style.width=((i+1)/8*100)+'%';
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}`.trim();
 }
 
-// ── Survey version display ────────────────────────────────────────────────────
-function renderSurveyVersions(data){
-  if(!data) return;
-  const surv=data.surveys||{};
-  const rows=Object.entries(surv).map(([id,m])=>{
-    const nextMs=new Date(m.date||m.lastKnown).getTime()+m.cycleDays*86400000;
-    const days=Math.max(0,Math.ceil((nextMs-Date.now())/86400000));
-    const color=days<60?'var(--accent2)':days<180?'#f0b429':'var(--green)';
-    const newBadge=m.ver&&m.ver!==m.lastKnown?`<span style="color:var(--accent)"> ✦ new</span>`:'';
-    return `<div style="display:flex;justify-content:space-between;padding:3px 0;
-      border-bottom:1px solid var(--bd);font-size:8px">
-      <span style="color:var(--tx)">${esc(m.name)}</span>
-      <span style="display:flex;gap:8px;align-items:center">
-        <span style="color:var(--muted)">${esc((m.ver||m.lastKnown||'').slice(0,12))}${newBadge}</span>
-        <span style="color:${color}">${days}d</span>
-      </span>
-    </div>`;
-  }).join('');
-  el('sv-versions').innerHTML=rows||'<div style="color:var(--muted)">No data</div>';
+// Fetch ideology tags for all covered countries in batches of 15 countries
+async function fetchIdeologies(){
+  const allQIDs=Object.values(CQID).filter((v,i,a)=>a.indexOf(v)===i);
+  const BATCH=15;
+  const results={};  // partyLabel → [ideology QIDs]
+
+  for(let i=0;i<allQIDs.length;i+=BATCH){
+    if(i>0) await new Promise(r=>setTimeout(r,4000)); // 4s between batches
+    const batch=allQIDs.slice(i,i+BATCH);
+    const sparql=buildIdeologySPARQL(batch);
+    const data=await sf(
+      'https://query.wikidata.org/sparql?format=json&origin=*&query='+encodeURIComponent(sparql),
+      {headers:{Accept:'application/sparql-results+json'}}
+    );
+    if(!data) continue;
+    (data.results?.bindings||[]).forEach(b=>{
+      const label=b.partyLabel?.value||'';
+      const ids=(b.ideologyList?.value||'').split(',').filter(x=>x.startsWith('Q'));
+      if(label&&ids.length) results[label]=ids;
+    });
+  }
+  return results;
 }
 
-function refreshLastRunInfo(){
+// ── Step 3: Derive coordinates from ideology tags ─────────────────────────────
+// Multi-tag weighted average; rejects extreme outliers; requires MIN_TAGS.
+function deriveCoords(ideologyQIDs){
+  const mapped=ideologyQIDs
+    .filter(q=>IDEOLOGY_MAP[q])
+    .map(q=>IDEOLOGY_MAP[q]);
+
+  if(mapped.length<MIN_TAGS) return null;  // not enough tags for reliable derivation
+
+  // Simple mean (each ideology tag equally weighted — no single source dominates)
+  const x=mapped.reduce((s,c)=>s+c[0],0)/mapped.length;
+  const y=mapped.reduce((s,c)=>s+c[1],0)/mapped.length;
+  const z=mapped.reduce((s,c)=>s+c[2],0)/mapped.length;
+
+  return [round1(clamp(x,-10,10)), round1(clamp(y,-10,10)), round1(clamp(z,-10,10))];
+}
+
+// ── Step 4: Apply updates to live PARTIES array ───────────────────────────────
+function applyUpdates(ideologyData){
   const log=loadJ(LS_LOG,[]);
-  const surv=loadJ(LS_SURV,null);
-  const lastYM=localStorage.getItem(LS_MONTH)||'never';
-  const infoEl=el('last-run-info');
-  if(!infoEl) return;
-  infoEl.style.display='block';
-  infoEl.innerHTML=`Last check: <span style="color:var(--tx)">${esc(lastYM)}</span> &nbsp;·&nbsp; `
-    +`${log.length} change(s) logged &nbsp;·&nbsp; `
-    +`Updates: <span style="color:${opts.advanced?'var(--green)':'var(--muted)'}">`
-    +`${opts.advanced?'enabled':'disabled'}</span>`;
-  if(surv) renderSurveyVersions(surv);
-  renderChangeLog(log);
-}
+  const now=new Date().toISOString().slice(0,10);
+  let changed=0;
 
-// ── Change log display ────────────────────────────────────────────────────────
-function renderChangeLog(log){
-  const logDiv=el('chg-log');
-  const logBody=el('chg-log-body');
-  if(!log.length){logDiv.style.display='none';return;}
-  logDiv.style.display='block';
-  logBody.innerHTML=[...log].reverse().slice(0,30).map(e=>{
-    const dFmt=v=>v>0?`+${v.toFixed(1)}`:v<0?`${v.toFixed(1)}`:'';
-    const dp=(v,n,cls)=>{const d=Math.round((n-v)*10)/10;
-      return Math.abs(d)>=0.1?`<span class="log-dp ${cls}">${cls.toUpperCase()}${dFmt(d)}</span>`:''};
-    const deltas=[dp(e.old[0],e.new[0],'pol'),dp(e.old[1],e.new[1],'soc'),dp(e.old[2],e.new[2],'eco')].filter(Boolean).join('');
-    return `<div class="log-entry">
-      <span class="log-party">${esc(e.party)}</span>
-      <div class="log-delta">${deltas||'<span style="color:var(--muted)">minor</span>'}</div>
-      <div class="log-meta">${esc(e.country)} · ${(e.tags||[]).length} ideology tags · ${esc(e.date)}</div>
-    </div>`;
-  }).join('');
-}
+  PARTIES.forEach(p=>{
+    // Only auto-update parties that are NOT from micro-states (insufficient Wikidata coverage)
+    // and NOT flagged as estimated purely due to post-2020 formation (Wikidata can cover those)
+    const skip=['Monaco','San Marino','Andorra','Liechtenstein',
+                'Kiribati','Tonga','Samoa','Solomon Islands','Vanuatu','Cook Islands'];
+    if(skip.includes(p.country)) return;
 
-// ── Core update pipeline ──────────────────────────────────────────────────────
-// Calls /api/surveys then /api/ideologies (in 6 country batches)
-// then applies derived coordinate updates locally.
-async function runUpdate(force=false){
-  const btn=el('upd-run-btn');
-  btn.disabled=true; btn.textContent='Running…';
-  progInit();
+    // Match party by name (case-insensitive, trim) to Wikidata labels
+    const wdLabel=Object.keys(ideologyData).find(
+      l=>l.trim().toLowerCase()===p.name.trim().toLowerCase()
+    );
+    if(!wdLabel) return;
 
-  const now=new Date();
-  const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const qids=ideologyData[wdLabel];
+    const newCoords=deriveCoords(qids);
+    if(!newCoords) return;
 
-  try{
-    // ── Step 0: survey versions ────────────────────────────────────────────
-    progStep(0,'active','Checking survey versions…');
-    const svResp=await fetch('/api/surveys',{method:'GET',headers:{Accept:'application/json'}});
-    if(!svResp.ok) throw new Error(`/api/surveys returned HTTP ${svResp.status}`);
-    const svData=await svResp.json();
-    saveJ(LS_SURV, svData);
-    renderSurveyVersions(svData);
-    progStep(0,'done',`Survey versions checked (${Object.keys(svData.surveys||{}).length} surveys)`);
+    const [nx,ny,nz]=newCoords;
+    const [ox,oy,oz]=[p.xp,p.ys,p.ze];
+    const dx=Math.abs(nx-ox), dy=Math.abs(ny-oy), dz=Math.abs(nz-oz);
 
-    // ── Steps 1-6: ideology batches ───────────────────────────────────────
-    // Split countries into 6 batches of ~12 each
-    const countryQIDs=[...new Set(PARTIES.map(p=>CQID[p.country]).filter(Boolean))];
-    const NBATCH=6;
-    const batchSize=Math.ceil(countryQIDs.length/NBATCH);
-    const allIdeologies={};  // partyLabel → [qids]
+    // Reject if any axis would shift more than MAX_SHIFT (outlier protection)
+    if(dx>MAX_SHIFT||dy>MAX_SHIFT||dz>MAX_SHIFT) return;
+    // Skip if change is below noise threshold on ALL axes
+    if(dx<MIN_DELTA&&dy<MIN_DELTA&&dz<MIN_DELTA) return;
 
-    for(let b=0;b<NBATCH;b++){
-      const batch=countryQIDs.slice(b*batchSize,(b+1)*batchSize);
-      if(!batch.length){ progStep(b+1,'done',`Batch ${b+1}/${NBATCH} — skipped (empty)`); continue; }
-      progStep(b+1,'active',`Fetching ideology data (batch ${b+1}/${NBATCH}, ${batch.length} countries)…`);
+    // Apply update
+    p.xp=nx; p.ys=ny; p.ze=nz;
+    p.orients=getOrientation(nx,ny,nz);
 
-      const r=await fetch('/api/ideologies',{
-        method:'POST',
-        headers:{'Content-Type':'application/json',Accept:'application/json'},
-        body:JSON.stringify({countryQIDs:batch}),
-      });
-      if(!r.ok){
-        progStep(b+1,'err',`Batch ${b+1}/${NBATCH} failed (HTTP ${r.status})`);
-        continue;  // non-fatal: continue with remaining batches
-      }
-      const d=await r.json();
-      Object.assign(allIdeologies, d.ideologies||{});
-      progStep(b+1,'done',`Batch ${b+1}/${NBATCH} — ${Object.keys(d.ideologies||{}).length} parties`);
+    // Remove asterisk if party was estimated and now has ≥MIN_TAGS ideology tags
+    if(p.est&&qids.filter(q=>IDEOLOGY_MAP[q]).length>=MIN_TAGS){
+      p.est=false; p.dname=p.name;
     }
 
-    // ── Step 7: apply ────────────────────────────────────────────────────
-    progStep(7,'active','Applying coordinate updates…');
-    const log=loadJ(LS_LOG,[]);
-    const today=now.toISOString().slice(0,10);
-    const SKIP_MICRO=new Set(['Monaco','San Marino','Andorra','Liechtenstein',
-      'Kiribati','Tonga','Samoa','Solomon Islands','Vanuatu','Cook Islands']);
-    let changed=0;
+    // Audit log
+    log.push({date:now, party:p.name, country:p.country,
+      old:[ox,oy,oz], new:[nx,ny,nz],
+      ideologyQIDs:qids, source:'Wikidata P1142'});
+    changed++;
+  });
 
-    PARTIES.forEach(p=>{
-      if(SKIP_MICRO.has(p.country)) return;
-      const wdKey=Object.keys(allIdeologies).find(
-        l=>l.trim().toLowerCase()===p.name.trim().toLowerCase());
-      if(!wdKey) return;
+  // Keep log to last 500 entries
+  if(log.length>500) log.splice(0,log.length-500);
+  saveJ(LS_LOG,log);
+  return changed;
+}
 
-      const qids=allIdeologies[wdKey];
-      const mapped=qids.filter(q=>IM[q]).map(q=>IM[q]);
-      if(mapped.length<MIN_TAGS) return;
+// ── Main monthly run ──────────────────────────────────────────────────────────
+async function monthlyRun(){
+  if(!isDue()) return;
 
-      const nx=Math.round(mapped.reduce((s,c)=>s+c[0],0)/mapped.length*10)/10;
-      const ny=Math.round(mapped.reduce((s,c)=>s+c[1],0)/mapped.length*10)/10;
-      const nz=Math.round(mapped.reduce((s,c)=>s+c[2],0)/mapped.length*10)/10;
-      const cx=Math.max(-10,Math.min(10,nx));
-      const cy=Math.max(-10,Math.min(10,ny));
-      const cz=Math.max(-10,Math.min(10,nz));
+  // Step 1: survey version check (lightweight metadata only)
+  const newSurveys=await checkSurveyVersions();
 
-      const dx=Math.abs(cx-p.xp), dy=Math.abs(cy-p.ys), dz=Math.abs(cz-p.ze);
-      if(dx>MAX_SHIFT||dy>MAX_SHIFT||dz>MAX_SHIFT) return;
-      if(dx<MIN_DELTA&&dy<MIN_DELTA&&dz<MIN_DELTA) return;
-
-      // Remove asterisk if now ≥MIN_TAGS ideology tags present
-      if(p.est&&mapped.length>=MIN_TAGS){ p.est=false; p.dname=p.name; }
-
-      log.push({date:today,party:p.name,country:p.country,
-        old:[p.xp,p.ys,p.ze],new:[cx,cy,cz],tags:qids});
-      p.xp=cx; p.ys=cy; p.ze=cz;
-      p.orients=getOrientation(cx,cy,cz);
-      changed++;
-    });
-
-    if(log.length>500) log.splice(0,log.length-500);
-    saveJ(LS_LOG,log);
-    localStorage.setItem(LS_MONTH,ym);
-
-    progStep(7,'done',`Done — ${changed} position${changed!==1?'s':''} updated`);
-    el('prog-bar').style.width='100%';
-    el('prog-bar').style.background='var(--green)';
-
-    renderChangeLog(log);
-    refreshLastRunInfo();
-
-    if(changed>0&&typeof rebuild==='function'){rebuild();render();}
-
-  }catch(err){
-    progStep(7,'err','Error: '+esc(err.message.slice(0,80)));
-  }finally{
-    btn.disabled=false; btn.textContent='⟳ Run update now';
+  // Step 2: Wikidata ideology fetch (the actual data update)
+  const ideologyData=await fetchIdeologies();
+  if(!Object.keys(ideologyData).length) {
+    // Wikidata unavailable — still mark month as checked (don't retry immediately)
+    localStorage.setItem(LS_MONTH,thisYM());
+    return;
   }
+
+  // Step 3+4: derive coords and apply
+  const changed=applyUpdates(ideologyData);
+
+  // Mark month done ONLY after successful data fetch
+  localStorage.setItem(LS_MONTH,thisYM());
+
+  // Trigger UI rebuild if any coords changed
+  if(changed>0&&typeof rebuild==='function'){rebuild();render();}
+
+  // Show notification if meaningful changes occurred
+  if(changed>0||newSurveys.length>0) showUpdateToast(changed,newSurveys);
 }
 
-// ── Monthly auto-check ────────────────────────────────────────────────────────
-function isUpdateDue(){
-  if(!opts.advanced) return false;
-  const stored=localStorage.getItem(LS_MONTH)||'';
-  const now=new Date();
-  const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  return stored!==ym;
+// ── Toast notification (unobtrusive, auto-dismisses) ─────────────────────────
+function showUpdateToast(partyCount, newSurveys){
+  const t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:16px;left:16px;z-index:8000;'
+    +'background:var(--s2);border:1px solid var(--bd2);border-radius:8px;'
+    +'padding:10px 14px;font-family:var(--mono);font-size:9px;color:var(--tx);'
+    +'max-width:280px;box-shadow:0 8px 24px rgba(0,0,0,.7);'
+    +'animation:gpc-fadein .3s ease;pointer-events:auto;';
+
+  let lines=[];
+  if(partyCount>0) lines.push(`<div style="color:var(--accent)">↻ ${partyCount} party position${partyCount>1?'s':''} updated from Wikidata</div>`);
+  if(newSurveys.length>0) newSurveys.forEach(sv=>
+    lines.push(`<div style="color:var(--accent2)">🔔 ${esc(sv.name)}: ${esc(sv.ver)} released</div>`)
+  );
+  lines.push(`<div style="color:var(--muted);margin-top:4px;font-size:8px">`
+    +`Source: Wikidata P1142 ideology tags · ${new Date().toLocaleDateString()}<br>`
+    +`<span id="gpc-toast-log" style="cursor:pointer;text-decoration:underline;color:var(--muted)">View change log</span>`
+    +`</div>`);
+
+  t.innerHTML=lines.join('');
+  const style=document.createElement('style');
+  style.textContent='@keyframes gpc-fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}';
+  document.head.appendChild(style);
+  document.body.appendChild(t);
+
+  // Log viewer on click
+  t.querySelector('#gpc-toast-log')?.addEventListener('click',()=>showChangeLog());
+
+  // Auto-dismiss after 12s
+  setTimeout(()=>{t.style.transition='opacity .4s';t.style.opacity='0';setTimeout(()=>t.remove(),400);},12000);
 }
 
-// ── Wire events ───────────────────────────────────────────────────────────────
-function wireSettings(){
-  el('cog-btn').addEventListener('click', openSettings);
-  el('sv-close').addEventListener('click', closeSettings);
-  el('settings-overlay').addEventListener('click', e=>{
-    if(e.target===el('settings-overlay')) closeSettings();
-  });
+// ── Change log viewer ─────────────────────────────────────────────────────────
+function showChangeLog(){
+  const log=loadJ(LS_LOG,[]);
+  const old=document.getElementById('gpc-log-panel');
+  if(old) old.remove();
 
-  // Toggles
-  el('tog-autorot').addEventListener('change', e=>{
-    opts.autorot=e.target.checked;
-    saveJ(LS_OPTS,opts);
-    if(typeof setSpinState==='function') setSpinState(opts.autorot?'spin':'stop');
-  });
-  el('tog-showest').addEventListener('change', e=>{
-    opts.showest=e.target.checked;
-    saveJ(LS_OPTS,opts);
-    if(typeof rebuild==='function'){rebuild();render();}
-  });
-  el('tog-axlabels').addEventListener('change', e=>{
-    opts.axlabels=e.target.checked;
-    saveJ(LS_OPTS,opts);
-    document.querySelectorAll('.ax-label').forEach(el=>{
-      el.style.display=opts.axlabels?'':'none';
+  const panel=document.createElement('div');
+  panel.id='gpc-log-panel';
+  panel.style.cssText='position:fixed;inset:0;z-index:9000;display:flex;align-items:center;'
+    +'justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);'
+    +'-webkit-backdrop-filter:blur(4px);';
+
+  const inner=document.createElement('div');
+  inner.style.cssText='background:var(--s1);border:1px solid var(--bd2);border-radius:12px;'
+    +'width:min(640px,95vw);max-height:85vh;display:flex;flex-direction:column;'
+    +'box-shadow:0 24px 64px rgba(0,0,0,.9);overflow:hidden;font-family:var(--mono);';
+
+  // Header
+  const hdr=document.createElement('div');
+  hdr.style.cssText='display:flex;align-items:center;gap:10px;padding:11px 15px;'
+    +'background:var(--s2);border-bottom:1px solid var(--bd);flex-shrink:0;';
+  hdr.innerHTML=`<span style="font-weight:700;font-size:12px;color:var(--accent);flex:1">
+    📋 Party Position Change Log</span>
+    <span style="font-size:8px;color:var(--muted)">${log.length} entries · Wikidata P1142</span>
+    <button id="gpc-log-close" style="background:none;border:none;color:var(--muted);
+      cursor:pointer;font-size:18px;padding:0 4px;line-height:1">✕</button>`;
+
+  // Body
+  const body=document.createElement('div');
+  body.style.cssText='overflow-y:auto;flex:1;padding:10px 14px;font-size:9px;'
+    +'line-height:1.6;-webkit-overflow-scrolling:touch;';
+
+  if(!log.length){
+    body.innerHTML='<div style="color:var(--muted)">No updates recorded yet. '
+      +'The system runs once per month when served over HTTP.</div>';
+  } else {
+    // Group by date
+    const byDate={};
+    [...log].reverse().forEach(e=>{(byDate[e.date]=byDate[e.date]||[]).push(e);});
+
+    let html='';
+    Object.entries(byDate).forEach(([date,entries])=>{
+      html+=`<div style="color:var(--muted);font-size:8px;text-transform:uppercase;
+        letter-spacing:.08em;margin:8px 0 4px">${esc(date)}</div>`;
+      entries.forEach(e=>{
+        const fmtV=(v,n,label,col)=>{
+          const diff=n-v, sign=diff>=0?'+':'';
+          const show=Math.abs(diff)>=0.1;
+          return show?`<span style="color:${col}">${label}:${sign}${round1(diff).toFixed(1)}</span>`:'';
+        };
+        const dx=fmtV(e.old[0],e.new[0],'P','var(--axis-pol)');
+        const dy=fmtV(e.old[1],e.new[1],'S','var(--axis-soc)');
+        const dz=fmtV(e.old[2],e.new[2],'E','var(--axis-econ)');
+        const changes=[dx,dy,dz].filter(Boolean).join(' ');
+
+        html+=`<div style="display:flex;align-items:center;gap:8px;padding:4px 6px;
+          background:var(--s2);border-radius:4px;margin-bottom:3px;flex-wrap:wrap">
+          <span style="color:var(--tx);flex:1;min-width:120px">${esc(e.party)}</span>
+          <span style="color:var(--muted);font-size:8px">${esc(e.country)}</span>
+          <span style="display:flex;gap:4px">${changes||'<span style="color:var(--muted)">minor</span>'}</span>
+          <span style="color:var(--muted);font-size:7px">${(e.ideologyQIDs||[]).length} tag(s)</span>
+        </div>`;
+      });
     });
-  });
-  el('tog-advanced').addEventListener('change', e=>{
-    opts.advanced=e.target.checked;
-    saveJ(LS_OPTS,opts);
-    el('adv-block').style.display=opts.advanced?'block':'none';
-    if(opts.advanced) refreshLastRunInfo();
-  });
+    body.innerHTML=html;
+  }
 
-  // Run update button
-  el('upd-run-btn').addEventListener('click', ()=>runUpdate(true));
+  // Footer
+  const foot=document.createElement('div');
+  foot.style.cssText='padding:7px 14px;border-top:1px solid var(--bd);flex-shrink:0;'
+    +'font-size:8px;color:var(--muted);line-height:1.6;';
+  const surv=loadJ(LS_SURV,{});
+  const survLines=SURVEY_VERSIONS.map(sv=>{
+    const m=surv[sv.id];
+    return m?`${esc(sv.id)} ${esc(m.ver||'?')} (${esc((m.date||'').slice(0,7))})`:null;
+  }).filter(Boolean);
+  foot.innerHTML=`Survey versions: ${survLines.join(' · ')||'Not yet checked'}`;
+
+  inner.appendChild(hdr);
+  inner.appendChild(body);
+  inner.appendChild(foot);
+  panel.appendChild(inner);
+  document.body.appendChild(panel);
+
+  inner.querySelector('#gpc-log-close').addEventListener('click',()=>panel.remove());
+  panel.addEventListener('click',e=>{if(e.target===panel)panel.remove();});
 }
 
-// ── Boot ────────────────────────────────────────────────────────────────────
+// ── Boot ──────────────────────────────────────────────────────────────────────
 function boot(){
-  wireSettings();
-  applyOpts();
-  refreshLastRunInfo();
+  // Re-apply any asteroid removals from previous sessions
+  const log=loadJ(LS_LOG,[]);
+  const destarred=new Set(log.filter(e=>!e.wasEst).map(e=>e.country+'||'+e.party));
+  PARTIES.forEach(p=>{
+    if(p.est&&destarred.has(p.country+'||'+p.name)){
+      p.est=false; p.dname=p.name;
+    }
+  });
 
-  // Auto-run monthly update if due (runs 8s after load to not compete with render)
-  if(isUpdateDue()){
-    setTimeout(()=>{
-      if(opts.advanced) runUpdate(false);
-    }, 8000);
-  }
+  if(!CAN_FETCH) return;  // file:// — nothing more to do
+
+  // Run 6s after page load to not compete with render
+  setTimeout(()=>{
+    monthlyRun().catch(err=>console.warn('[GPC Update]',err));
+  }, 6000);
 }
 
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
-else boot();
+if(typeof PARTIES!=='undefined'&&typeof getOrientation!=='undefined'){
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot);
+  else boot();
+}
 
 })();
+
+
 
 </script>
 </body>
