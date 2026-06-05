@@ -17,27 +17,7 @@ A fully interactive 3D political compass visualising 957 parties across 184 coun
 
 Parties without expert-survey coverage are marked `*` (estimated).
 
-## Deployment
-
-### One-click deploy
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_USERNAME/global-political-compass)
-
-### Manual
-
-1. Fork/clone this repo
-2. `npm i -g vercel && vercel --prod`
-
-## Server-side update system
-
-The `⚙ Settings` panel → **Enable server-side data updates** toggle activates monthly
-automatic updates via two Vercel serverless functions:
-
-| Endpoint | Purpose |
-|---|---|
-| `GET /api/surveys` | Checks Dataverse + Zenodo for new expert survey versions |
-| `POST /api/ideologies` | Queries Wikidata SPARQL for party ideology tags (P1142) |
-
+3. 
 No API keys required. Updates run once per calendar month automatically, or on demand
 via the **Run update now** button. A full change log is kept in `localStorage`.
 
