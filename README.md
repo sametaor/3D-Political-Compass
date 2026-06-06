@@ -17,8 +17,7 @@ A fully interactive 3D political compass visualising 957 parties across 184 coun
 
 Parties without expert-survey coverage are marked `*` (estimated).
 
-No API keys required. Updates run once per week automatically, or on demand
-via the **Fetch** button. A full change log is kept in `localStorage`.
+No API keys required.
 
 ## Anti-bias safeguards
 
