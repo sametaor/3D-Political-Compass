@@ -25,3 +25,8 @@ No API keys required.
 - Maximum 3.0-point shift per axis (outlier protection)
 - Minimum 0.5-point delta required (noise floor)
 - Ideology centroids sourced from ≥3 independent academic works
+
+## To-Do List
+- [ ] Add swappable axes to accomodate 4+ axes
+- [ ] Add country/city display based on data of political party
+- [ ] Add Self-Updation mechanism
